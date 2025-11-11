@@ -1,0 +1,3104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🦝 Raccoon Rampage</title>
+    <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', sans-serif;
+    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+    overflow: hidden;
+    color: #fff;
+    user-select: none;
+}
+
+#gameContainer {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+}
+
+#gameCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: none;
+}
+
+/* HUD */
+#hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* 크로스헤어 - 파스텔 별 */
+#crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+#crosshair .star {
+    font-size: 30px;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.8));
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 1; }
+}
+
+/* 상단 HUD */
+#topHUD {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+}
+
+#stageTitle {
+    font-size: 24px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    background: rgba(255, 182, 193, 0.8);
+    padding: 10px 30px;
+    border-radius: 20px;
+    border: 3px solid #fff;
+    animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 하단 HUD */
+#bottomHUD {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 20px;
+}
+
+#healthBar, #sugarMeter {
+    flex: 1;
+    min-width: 200px;
+}
+
+.label {
+    font-size: 14px;
+    margin-bottom: 5px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.bar-container {
+    position: relative;
+    background: rgba(0, 0, 0, 0.5);
+    border: 3px solid #fff;
+    border-radius: 15px;
+    height: 40px;
+    overflow: hidden;
+}
+
+.bar {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 12px;
+}
+
+#healthBarFill {
+    background: linear-gradient(90deg, #ff69b4 0%, #ff1493 100%);
+    box-shadow: 0 0 20px rgba(255, 20, 147, 0.6);
+}
+
+#sugarBarFill {
+    background: linear-gradient(90deg, #ffd700 0%, #ff69b4 50%, #ff1493 100%);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+}
+
+.bar-container span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+#ammoDisplay {
+    text-align: center;
+    background: rgba(255, 182, 193, 0.8);
+    padding: 15px 25px;
+    border-radius: 15px;
+    border: 3px solid #fff;
+    min-width: 180px;
+}
+
+.weapon-name {
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 5px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.ammo-count {
+    font-size: 24px;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* 상호작용 프롬프트 */
+#interactionPrompt {
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 182, 193, 0.9);
+    padding: 15px 30px;
+    border-radius: 20px;
+    border: 3px solid #fff;
+    font-size: 18px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.05); }
+}
+
+/* 다이얼로그 박스 */
+#dialogueBox {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 182, 193, 0.95);
+    padding: 30px;
+    border-radius: 20px;
+    border: 4px solid #fff;
+    max-width: 600px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+#dialogueText {
+    font-size: 18px;
+    line-height: 1.6;
+    margin-bottom: 15px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+#dialogueContinue {
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+    font-style: italic;
+}
+
+/* 로딩 화면 */
+#loadingScreen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+#loadingScreen h1 {
+    font-size: 48px;
+    margin-bottom: 30px;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.loading-bar {
+    width: 400px;
+    height: 30px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    overflow: hidden;
+    border: 3px solid #fff;
+    margin-bottom: 20px;
+}
+
+#loadingProgress {
+    height: 100%;
+    background: linear-gradient(90deg, #ff69b4 0%, #ff1493 100%);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* 메인 메뉴 */
+#mainMenu {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 50;
+}
+
+#mainMenu h1 {
+    font-size: 64px;
+    margin-bottom: 50px;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+#mainMenu button {
+    background: rgba(255, 182, 193, 0.9);
+    border: 4px solid #fff;
+    color: #fff;
+    padding: 15px 40px;
+    font-size: 24px;
+    font-weight: bold;
+    border-radius: 25px;
+    cursor: pointer;
+    margin: 10px;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    pointer-events: auto;
+}
+
+#mainMenu button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* 오버레이 효과 */
+#lowHealthVignette {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, transparent 30%, rgba(255, 20, 147, 0.3) 100%);
+    pointer-events: none;
+    z-index: 5;
+    animation: pulseVignette 2s ease-in-out infinite;
+}
+
+@keyframes pulseVignette {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+
+#sugarRushOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, 
+        rgba(255, 0, 150, 0.2) 0%,
+        rgba(255, 100, 0, 0.2) 25%,
+        rgba(255, 200, 0, 0.2) 50%,
+        rgba(0, 255, 150, 0.2) 75%,
+        rgba(150, 0, 255, 0.2) 100%);
+    background-size: 400% 400%;
+    pointer-events: none;
+    z-index: 5;
+    animation: rainbowFlow 3s linear infinite;
+    mix-blend-mode: screen;
+}
+
+@keyframes rainbowFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+    #bottomHUD {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    #healthBar, #sugarMeter, #ammoDisplay {
+        width: 100%;
+        max-width: 300px;
+    }
+}
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- HUD -->
+        <div id="hud">
+            <!-- 크로스헤어 -->
+            <div id="crosshair">
+                <div class="star">⭐</div>
+            </div>
+            
+            <!-- 상단 정보 -->
+            <div id="topHUD">
+                <div id="stageTitle"></div>
+            </div>
+            
+            <!-- 하단 HUD -->
+            <div id="bottomHUD">
+                <div id="healthBar">
+                    <div class="label">💖 Love Gauge</div>
+                    <div class="bar-container">
+                        <div class="bar" id="healthBarFill"></div>
+                        <span id="healthText">100 / 100</span>
+                    </div>
+                </div>
+                
+                <div id="ammoDisplay">
+                    <div class="weapon-name" id="weaponName">Acorn Blaster</div>
+                    <div class="ammo-count" id="ammoCount">30 / 30</div>
+                </div>
+                
+                <div id="sugarMeter">
+                    <div class="label">🍭 Sugar Rush</div>
+                    <div class="bar-container">
+                        <div class="bar" id="sugarBarFill"></div>
+                        <span id="sugarText">0%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 점수 표시 -->
+            <div id="scoreDisplay" style="position: absolute; top: 20px; right: 20px; background: rgba(255, 182, 193, 0.8); padding: 15px 25px; border-radius: 15px; border: 3px solid #fff; font-size: 24px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);">
+                <div>Score: <span id="scoreValue">0</span></div>
+                <div id="comboDisplay" style="font-size: 16px; margin-top: 5px; color: #ffd700; display: none;">Combo x<span id="comboValue">0</span>!</div>
+            </div>
+            
+            <!-- 보스 체력바 -->
+            <div id="bossHealthBar" class="hidden" style="position: absolute; top: 80px; left: 50%; transform: translateX(-50%); width: 600px; background: rgba(0, 0, 0, 0.7); border: 3px solid #ff0000; border-radius: 15px; padding: 10px;">
+                <div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 5px; color: #ff0000;">BOSS</div>
+                <div style="background: rgba(255, 0, 0, 0.3); height: 30px; border-radius: 10px; overflow: hidden;">
+                    <div id="bossHealthFill" style="background: linear-gradient(90deg, #ff0000 0%, #ff6666 100%); height: 100%; width: 100%; transition: width 0.3s;"></div>
+                </div>
+                <div id="bossHealthText" style="text-align: center; margin-top: 5px; font-weight: bold;">100%</div>
+            </div>
+            
+            <!-- 상호작용 UI -->
+            <div id="interactionPrompt" class="hidden">Press E to interact</div>
+            
+            <!-- 다이얼로그 -->
+            <div id="dialogueBox" class="hidden">
+                <div id="dialogueText"></div>
+                <div id="dialogueContinue">Press SPACE to continue</div>
+            </div>
+        </div>
+        
+        <!-- 로딩 화면 -->
+        <div id="loadingScreen">
+            <h1>🦝 Raccoon Rampage</h1>
+            <div class="loading-bar">
+                <div id="loadingProgress"></div>
+            </div>
+            <p>Loading...</p>
+        </div>
+        
+        <!-- 메인 메뉴 -->
+        <div id="mainMenu" class="hidden">
+            <h1>🦝 Raccoon Rampage</h1>
+            <button id="startButton">Start Game</button>
+            <button id="instructionsButton">Instructions</button>
+        </div>
+        
+        <!-- 저사양 모드 오버레이 -->
+        <div id="lowHealthVignette" class="hidden"></div>
+        <div id="sugarRushOverlay" class="hidden"></div>
+    </div>
+    
+    <!-- 번들된 스크립트 -->
+    <script>
+// InputManager
+class InputManager {
+    constructor() {
+        this.keys = {};
+        this.mouse = {
+            x: 0,
+            y: 0,
+            deltaX: 0,
+            deltaY: 0,
+            buttons: {},
+            wheelDelta: 0
+        };
+        
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        // keydown 이벤트 - 포인터 락과 무관하게 항상 작동
+        const keydownHandler = (e) => {
+            // 기본 동작 방지하지 않음 (게임 컨트롤만)
+            if (e.code === 'KeyW' || e.code === 'KeyA' || e.code === 'KeyS' || e.code === 'KeyD' || 
+                e.code === 'Space' || e.code === 'ShiftLeft') {
+                // 게임 컨트롤 키만 처리
+            }
+            
+            this.keys[e.code] = true;
+            
+            // Space 키는 여러 방식으로 감지
+            if (e.code === 'Space' || e.key === ' ' || e.key === 'Space' || e.keyCode === 32) {
+                this.keys['Space'] = true;
+                this.keys[' '] = true;
+            }
+            // WASD 키 명시적으로 설정
+            if (e.code === 'KeyW') {
+                this.keys['KeyW'] = true;
+                console.log('W key pressed');
+            }
+            if (e.code === 'KeyA') {
+                this.keys['KeyA'] = true;
+                console.log('A key pressed');
+            }
+            if (e.code === 'KeyS') {
+                this.keys['KeyS'] = true;
+                console.log('S key pressed');
+            }
+            if (e.code === 'KeyD') {
+                this.keys['KeyD'] = true;
+                console.log('D key pressed');
+            }
+        };
+        
+        const keyupHandler = (e) => {
+            this.keys[e.code] = false;
+            if (e.code === 'Space' || e.key === ' ' || e.key === 'Space' || e.keyCode === 32) {
+                this.keys['Space'] = false;
+                this.keys[' '] = false;
+            }
+            // WASD 키 명시적으로 해제
+            if (e.code === 'KeyW') this.keys['KeyW'] = false;
+            if (e.code === 'KeyA') this.keys['KeyA'] = false;
+            if (e.code === 'KeyS') this.keys['KeyS'] = false;
+            if (e.code === 'KeyD') this.keys['KeyD'] = false;
+        };
+        
+        // 이벤트 리스너 등록 (capture 단계에서도 작동하도록)
+        document.addEventListener('keydown', keydownHandler, true);
+        document.addEventListener('keyup', keyupHandler, true);
+        window.addEventListener('keydown', keydownHandler, true);
+        window.addEventListener('keyup', keyupHandler, true);
+        
+        window.addEventListener('mousemove', (e) => {
+            // 포인터 락이 활성화된 경우에만 델타 업데이트
+            if (document.pointerLockElement || document.mozPointerLockElement || document.webkitPointerLockElement) {
+                this.mouse.deltaX = e.movementX || 0;
+                this.mouse.deltaY = e.movementY || 0;
+            } else {
+                // 포인터 락이 없으면 델타를 0으로 설정
+                this.mouse.deltaX = 0;
+                this.mouse.deltaY = 0;
+            }
+            this.mouse.x = e.clientX;
+            this.mouse.y = e.clientY;
+        });
+        
+        window.addEventListener('mousedown', (e) => {
+            this.mouse.buttons[e.button] = true;
+        });
+        
+        window.addEventListener('mouseup', (e) => {
+            this.mouse.buttons[e.button] = false;
+        });
+        
+        window.addEventListener('wheel', (e) => {
+            this.mouse.wheelDelta = e.deltaY;
+        });
+    }
+    
+    isKeyPressed(code) {
+        const result = this.keys[code] || false;
+        return result;
+    }
+    
+    isMouseButtonPressed(button) {
+        return this.mouse.buttons[button] || false;
+    }
+    
+    getMouseDelta() {
+        const delta = {
+            x: this.mouse.deltaX,
+            y: this.mouse.deltaY
+        };
+        this.mouse.deltaX = 0;
+        this.mouse.deltaY = 0;
+        return delta;
+    }
+    
+    lockPointer() {
+        const canvas = document.getElementById('gameCanvas');
+        canvas.requestPointerLock = canvas.requestPointerLock || 
+                                   canvas.mozRequestPointerLock || 
+                                   canvas.webkitRequestPointerLock;
+        canvas.requestPointerLock();
+    }
+    
+    unlockPointer() {
+        document.exitPointerLock = document.exitPointerLock || 
+                                  document.mozExitPointerLock || 
+                                  document.webkitExitPointerLock;
+        document.exitPointerLock();
+    }
+}
+
+// WeaponBase
+class WeaponBase {
+    constructor(camera, scene, config) {
+        this.camera = camera;
+        this.scene = scene;
+        
+        this.name = config.name || 'Weapon';
+        this.damage = config.damage || 10;
+        this.fireRate = config.fireRate || 0.1;
+        this.maxAmmo = config.maxAmmo || 30;
+        this.currentAmmo = this.maxAmmo;
+        this.reloadTime = config.reloadTime || 1.5;
+        this.range = config.range || 100;
+        
+        this.lastFireTime = 0;
+        this.isReloading = false;
+    }
+    
+    update(deltaTime) {
+    }
+    
+    shoot() {
+        if (this.isReloading) return;
+        if (Date.now() - this.lastFireTime < this.fireRate * 1000) return;
+        if (this.currentAmmo <= 0) {
+            this.reload();
+            return;
+        }
+        
+        this.performShoot();
+        this.currentAmmo--;
+        this.lastFireTime = Date.now();
+    }
+    
+    performShoot() {
+    }
+    
+    reload() {
+        if (this.isReloading || this.currentAmmo >= this.maxAmmo) return;
+        
+        this.isReloading = true;
+        setTimeout(() => {
+            this.currentAmmo = this.maxAmmo;
+            this.isReloading = false;
+        }, this.reloadTime * 1000);
+    }
+}
+
+// AcornBlaster
+class AcornBlaster extends WeaponBase {
+    constructor(camera, scene) {
+        super(camera, scene, {
+            name: 'Acorn Blaster',
+            damage: 10,
+            fireRate: 0.1,
+            maxAmmo: 30,
+            reloadTime: 1.5,
+            range: 100
+        });
+        
+        this.bulletSpeed = 50;
+        this.spreadAngle = 0.02;
+        this.bullets = [];
+    }
+    
+    performShoot() {
+        const direction = new THREE.Vector3();
+        this.camera.getWorldDirection(direction);
+        
+        const spreadX = (Math.random() - 0.5) * this.spreadAngle;
+        const spreadY = (Math.random() - 0.5) * this.spreadAngle;
+        direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), spreadX);
+        direction.applyAxisAngle(new THREE.Vector3(1, 0, 0), spreadY);
+        
+        this.createBullet(this.camera.position.clone(), direction);
+    }
+    
+    createBullet(position, direction) {
+        const geometry = new THREE.SphereGeometry(0.1, 8, 8);
+        const material = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
+        const bullet = new THREE.Mesh(geometry, material);
+        
+        bullet.position.copy(position);
+        this.scene.add(bullet);
+        
+        const startPos = position.clone();
+        const velocity = direction.clone().multiplyScalar(this.bulletSpeed);
+        
+        const bulletData = {
+            mesh: bullet,
+            velocity: velocity,
+            startPos: startPos,
+            active: true,
+            damage: this.damage
+        };
+        this.bullets.push(bulletData);
+    }
+    
+    update(deltaTime) {
+        for (let i = this.bullets.length - 1; i >= 0; i--) {
+            const bullet = this.bullets[i];
+            if (!bullet.active) {
+                this.bullets.splice(i, 1);
+                continue;
+            }
+            
+            bullet.mesh.position.add(bullet.velocity.clone().multiplyScalar(deltaTime));
+            
+            if (bullet.mesh.position.distanceTo(bullet.startPos) > this.range) {
+                this.scene.remove(bullet.mesh);
+                bullet.mesh.geometry.dispose();
+                bullet.mesh.material.dispose();
+                bullet.active = false;
+            }
+        }
+    }
+    
+    checkCollisions(enemies) {
+        for (let i = this.bullets.length - 1; i >= 0; i--) {
+            const bullet = this.bullets[i];
+            if (!bullet.active) continue;
+            
+            for (let j = 0; j < enemies.length; j++) {
+                const enemy = enemies[j];
+                if (enemy.isDead) continue;
+                
+                const distance = bullet.mesh.position.distanceTo(enemy.mesh.position);
+                if (distance < 0.5) {
+                    // 헤드샷 체크 (적의 머리 부분)
+                    const headHeight = enemy.mesh.position.y + (enemy.mesh.scale.y || 1) * 0.5;
+                    const isHeadshot = bullet.mesh.position.y > headHeight - 0.3;
+                    
+                    enemy.takeDamage(bullet.damage, isHeadshot);
+                    
+                    // 충돌 스파크 효과
+                    if (this.particleSystem) {
+                        const direction = bullet.velocity.clone().normalize();
+                        this.particleSystem.createSpark(bullet.mesh.position, direction);
+                    }
+                    
+                    this.scene.remove(bullet.mesh);
+                    bullet.mesh.geometry.dispose();
+                    bullet.mesh.material.dispose();
+                    bullet.active = false;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+// WeaponManager
+class WeaponManager {
+    constructor(camera, scene) {
+        this.camera = camera;
+        this.scene = scene;
+        this.inputManager = new InputManager();
+        
+        this.weapons = [];
+        this.currentWeaponIndex = 0;
+        this.currentWeapon = null;
+        this.enemyManager = null;
+        this.particleSystem = null;
+        
+        this.onAmmoChanged = null;
+        this.onWeaponChanged = null;
+        
+        this.init();
+    }
+    
+    setParticleSystem(particleSystem) {
+        this.particleSystem = particleSystem;
+        // 현재 무기에 파티클 시스템 전달
+        if (this.currentWeapon) {
+            this.currentWeapon.particleSystem = particleSystem;
+        }
+    }
+    
+    init() {
+        this.currentWeapon = new AcornBlaster(this.camera, this.scene);
+        this.weapons.push(this.currentWeapon);
+        
+        if (this.onWeaponChanged) {
+            this.onWeaponChanged(this.currentWeapon);
+        }
+    }
+    
+    setEnemyManager(enemyManager) {
+        this.enemyManager = enemyManager;
+    }
+    
+    update(deltaTime) {
+        this.handleWeaponSwitching();
+        this.handleShooting();
+        this.handleReload();
+        this.handleMelee();
+        
+        if (this.currentWeapon) {
+            this.currentWeapon.update(deltaTime);
+            if (this.currentWeapon.checkCollisions && this.enemyManager) {
+                this.currentWeapon.checkCollisions(this.enemyManager.enemies);
+            }
+        }
+    }
+    
+    handleWeaponSwitching() {
+        if (this.inputManager.mouse.wheelDelta) {
+            const delta = this.inputManager.mouse.wheelDelta > 0 ? 1 : -1;
+            this.switchWeapon(delta);
+            this.inputManager.mouse.wheelDelta = 0;
+        }
+        
+        for (let i = 1; i <= 5; i++) {
+            if (this.inputManager.isKeyPressed(`Digit${i}`)) {
+                this.switchWeapon(i - 1 - this.currentWeaponIndex);
+            }
+        }
+    }
+    
+    switchWeapon(offset) {
+        if (this.weapons.length === 0) return;
+        
+        this.currentWeaponIndex = (this.currentWeaponIndex + offset + this.weapons.length) % this.weapons.length;
+        this.currentWeapon = this.weapons[this.currentWeaponIndex];
+        
+        if (this.onWeaponChanged) {
+            this.onWeaponChanged(this.currentWeapon);
+        }
+    }
+    
+    handleShooting() {
+        if (this.currentWeapon && this.inputManager.isMouseButtonPressed(0)) {
+            this.currentWeapon.shoot();
+            
+            if (this.onAmmoChanged) {
+                this.onAmmoChanged(this.currentWeapon.currentAmmo, this.currentWeapon.maxAmmo);
+            }
+        }
+    }
+    
+    handleReload() {
+        if (this.inputManager.isKeyPressed('KeyR') && this.currentWeapon) {
+            this.currentWeapon.reload();
+        }
+    }
+    
+    handleMelee() {
+        if (this.inputManager.isMouseButtonPressed(2)) {
+            this.performMeleeAttack();
+        }
+    }
+    
+    performMeleeAttack() {
+    }
+    
+    addWeapon(weapon) {
+        this.weapons.push(weapon);
+    }
+}
+
+// EnemyBase
+class EnemyBase {
+    constructor(scene, type, position, player = null) {
+        this.scene = scene;
+        this.type = type;
+        this.position = position.clone();
+        
+        this.maxHealth = 20;
+        this.currentHealth = this.maxHealth;
+        this.speed = 3;
+        
+        // 적 타입에 따라 다른 설정
+        if (type === 'ranged') {
+            // 원거리 공격 적
+            this.attackType = 'ranged';
+            this.attackRange = 15;
+            this.attackDamage = 5;
+            this.attackCooldown = 2;
+            this.projectileSpeed = 10;
+        } else {
+            // 근접 공격 적
+            this.attackType = 'melee';
+            this.attackRange = 2;
+            this.attackDamage = 10;
+            this.attackCooldown = 1.5;
+        }
+        
+        this.attackTimer = 0;
+        this.staggerThreshold = 3;
+        this.hitCount = 0;
+        this.isStaggered = false;
+        
+        this.isDead = false;
+        this.target = player;
+        this.playerController = null; // 플레이어 컨트롤러 참조
+        this.enemyManager = null; // EnemyManager 참조
+        
+        this.onDeath = null;
+        
+        this.createMesh();
+    }
+    
+    setPlayerController(playerController) {
+        this.playerController = playerController;
+    }
+    
+    setEnemyManager(enemyManager) {
+        this.enemyManager = enemyManager;
+    }
+    
+    createMesh() {
+        // 적 타입에 따라 다른 모습
+        if (this.attackType === 'ranged') {
+            // 원거리 공격 적 - 새 모습
+            const bodyGeometry = new THREE.SphereGeometry(0.5, 8, 8);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xff6b6b, // 빨간색
+                roughness: 0.8
+            });
+            this.mesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            this.mesh.scale.set(1, 1.1, 0.9);
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y += 0.5;
+            
+            // 날개
+            const wingGeometry = new THREE.BoxGeometry(0.3, 0.1, 0.8);
+            const wingMaterial = new THREE.MeshStandardMaterial({ color: 0xff4757 });
+            
+            const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+            leftWing.position.set(-0.4, 0.2, 0);
+            leftWing.rotation.z = 0.3;
+            this.mesh.add(leftWing);
+            
+            const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
+            rightWing.position.set(0.4, 0.2, 0);
+            rightWing.rotation.z = -0.3;
+            this.mesh.add(rightWing);
+            
+            // 부리
+            const beakGeometry = new THREE.ConeGeometry(0.1, 0.3, 6);
+            const beakMaterial = new THREE.MeshStandardMaterial({ color: 0xffa502 });
+            const beak = new THREE.Mesh(beakGeometry, beakMaterial);
+            beak.position.set(0, 0, 0.5);
+            beak.rotation.x = Math.PI / 2;
+            this.mesh.add(beak);
+            
+            // 눈
+            const eyeGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+            const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.15, 0.15, 0.4);
+            this.mesh.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.15, 0.15, 0.4);
+            this.mesh.add(rightEye);
+            
+        } else if (this.type === 'bunny' || this.attackType === 'melee') {
+            // 근접 공격 적 - 곰 모습
+            const bodyGeometry = new THREE.SphereGeometry(0.8, 8, 8);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x8b4513, // 갈색
+                roughness: 0.9
+            });
+            this.mesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            this.mesh.scale.set(1, 1.1, 0.9);
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y += 0.8;
+            
+            // 귀
+            const earGeometry = new THREE.SphereGeometry(0.25, 8, 8);
+            const earMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 });
+            
+            const leftEar = new THREE.Mesh(earGeometry, earMaterial);
+            leftEar.position.set(-0.5, 0.6, 0.3);
+            this.mesh.add(leftEar);
+            
+            const rightEar = new THREE.Mesh(earGeometry, earMaterial);
+            rightEar.position.set(0.5, 0.6, 0.3);
+            this.mesh.add(rightEar);
+            
+            // 눈
+            const eyeGeometry = new THREE.SphereGeometry(0.12, 8, 8);
+            const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.3, 0.2, 0.7);
+            this.mesh.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.3, 0.2, 0.7);
+            this.mesh.add(rightEye);
+            
+            // 발톱 (근접 공격 강조)
+            const clawGeometry = new THREE.BoxGeometry(0.1, 0.2, 0.3);
+            const clawMaterial = new THREE.MeshStandardMaterial({ color: 0x2c2c2c });
+            
+            const leftClaw = new THREE.Mesh(clawGeometry, clawMaterial);
+            leftClaw.position.set(-0.4, -0.5, 0.5);
+            this.mesh.add(leftClaw);
+            
+            const rightClaw = new THREE.Mesh(clawGeometry, clawMaterial);
+            rightClaw.position.set(0.4, -0.5, 0.5);
+            this.mesh.add(rightClaw);
+            
+        } else if (this.type === 'bear') {
+            // 곰 모습
+            const bodyGeometry = new THREE.SphereGeometry(0.8, 8, 8);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x8b4513, // 갈색
+                roughness: 0.9
+            });
+            this.mesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            this.mesh.scale.set(1, 1.1, 0.9);
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y += 0.8;
+            
+            // 귀
+            const earGeometry = new THREE.SphereGeometry(0.25, 8, 8);
+            const earMaterial = new THREE.MeshStandardMaterial({ color: 0x654321 });
+            
+            const leftEar = new THREE.Mesh(earGeometry, earMaterial);
+            leftEar.position.set(-0.5, 0.6, 0.3);
+            this.mesh.add(leftEar);
+            
+            const rightEar = new THREE.Mesh(earGeometry, earMaterial);
+            rightEar.position.set(0.5, 0.6, 0.3);
+            this.mesh.add(rightEar);
+            
+            // 눈
+            const eyeGeometry = new THREE.SphereGeometry(0.12, 8, 8);
+            const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.3, 0.2, 0.7);
+            this.mesh.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.3, 0.2, 0.7);
+            this.mesh.add(rightEye);
+            
+        } else {
+            // 기본 (토끼와 유사)
+            const bodyGeometry = new THREE.SphereGeometry(0.6, 8, 8);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xf5deb3,
+                roughness: 0.8
+            });
+            this.mesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            this.mesh.scale.set(1, 1.2, 0.8);
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y += 0.6;
+        }
+        
+        this.mesh.castShadow = true;
+        this.mesh.receiveShadow = true;
+        this.scene.add(this.mesh);
+    }
+    
+    update(deltaTime) {
+        if (this.isDead) return;
+        
+        if (this.target) {
+            this.moveTowardsTarget(deltaTime);
+            this.checkAttack();
+        }
+    }
+    
+    moveTowardsTarget(deltaTime) {
+        if (!this.target) return;
+        
+        const targetPos = this.target.position || this.target;
+        const distance = this.position.distanceTo(targetPos);
+        
+        // 원거리 적은 일정 거리 유지
+        if (this.attackType === 'ranged' && distance < this.attackRange * 0.8) {
+            // 너무 가까우면 뒤로 이동
+            const direction = new THREE.Vector3()
+                .subVectors(this.position, targetPos)
+                .normalize();
+            this.position.add(direction.multiplyScalar(this.speed * deltaTime * 0.5));
+        } else if (this.attackType === 'melee' || distance > this.attackRange) {
+            // 근접 적이거나 멀리 있으면 다가가기
+            const direction = new THREE.Vector3()
+                .subVectors(targetPos, this.position)
+                .normalize();
+            const speed = this.isStaggered ? this.speed * 0.5 : this.speed;
+            this.position.add(direction.multiplyScalar(speed * deltaTime));
+        }
+        
+        this.mesh.position.copy(this.position);
+        this.mesh.lookAt(targetPos);
+    }
+    
+    checkAttack() {
+        if (!this.target || !this.playerController) return;
+        
+        this.attackTimer -= 0.016; // 약 60fps 기준
+        
+        const targetPos = this.target.position || this.target;
+        const distance = this.position.distanceTo(targetPos);
+        
+        if (distance <= this.attackRange && this.attackTimer <= 0) {
+            if (this.attackType === 'melee') {
+                // 근접 공격
+                this.playerController.takeDamage(this.attackDamage);
+                this.attackTimer = this.attackCooldown;
+                console.log('Melee attack!', this.attackDamage);
+            } else if (this.attackType === 'ranged') {
+                // 원거리 공격 - 투사체 발사
+                if (this.enemyManager) {
+                    this.shootProjectile(targetPos, this.enemyManager);
+                    this.attackTimer = this.attackCooldown;
+                }
+            }
+        }
+    }
+    
+    shootProjectile(targetPos, enemyManager) {
+        const direction = new THREE.Vector3()
+            .subVectors(targetPos, this.position)
+            .normalize();
+        
+        // 투사체 생성
+        const projectileGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+        const projectileMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const projectileMesh = new THREE.Mesh(projectileGeometry, projectileMaterial);
+        projectileMesh.position.copy(this.position);
+        projectileMesh.position.y += 0.5;
+        this.scene.add(projectileMesh);
+        
+        const velocity = direction.multiplyScalar(this.projectileSpeed);
+        const startPos = projectileMesh.position.clone();
+        
+        // 투사체 객체 생성
+        const projectile = {
+            mesh: projectileMesh,
+            position: projectileMesh.position.clone(),
+            velocity: velocity,
+            startPos: startPos,
+            damage: this.attackDamage,
+            maxRange: this.attackRange * 2
+        };
+        
+        // EnemyManager에 추가
+        if (enemyManager) {
+            enemyManager.addProjectile(projectile);
+        }
+    }
+    
+    takeDamage(amount, isHeadshot = false) {
+        if (this.isDead) return;
+        
+        this.lastHitWasHeadshot = isHeadshot;
+        
+        if (isHeadshot) {
+            amount *= 2;
+        }
+        
+        this.currentHealth -= amount;
+        this.hitCount++;
+        
+        if (this.hitCount >= this.staggerThreshold && !this.isStaggered) {
+            this.stagger();
+        }
+        
+        if (this.currentHealth <= 0) {
+            this.die();
+        }
+    }
+    
+    stagger() {
+        this.isStaggered = true;
+        setTimeout(() => {
+            this.isStaggered = false;
+            this.hitCount = 0;
+        }, 2000);
+    }
+    
+    die() {
+        if (this.isDead) return;
+        
+        this.isDead = true;
+        
+        this.scene.remove(this.mesh);
+        this.mesh.geometry.dispose();
+        this.mesh.material.dispose();
+        
+        if (this.onDeath) {
+            this.onDeath();
+        }
+    }
+    
+    dispose() {
+        if (this.mesh) {
+            this.scene.remove(this.mesh);
+            this.mesh.geometry.dispose();
+            this.mesh.material.dispose();
+        }
+    }
+}
+
+// EnemyManager
+class EnemyManager {
+    constructor(scene) {
+        this.scene = scene;
+        this.enemies = [];
+        this.projectiles = []; // 투사체 관리
+        this.spawnPoints = [];
+        this.currentWave = 0;
+        this.enemiesPerWave = 5;
+        this.waveCooldown = 10;
+        this.player = null;
+        
+        this.onEnemyKilled = null;
+        this.onWaveComplete = null;
+        this.onWaveStart = null;
+    }
+    
+    update(deltaTime) {
+        this.enemies.forEach(enemy => {
+            if (enemy && enemy.update) {
+                enemy.update(deltaTime);
+            }
+        });
+        
+        // 투사체 업데이트 (역순으로 순회하여 안전하게 제거)
+        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+            const projectile = this.projectiles[i];
+            if (!projectile || !projectile.mesh) {
+                this.projectiles.splice(i, 1);
+                continue;
+            }
+            
+            projectile.position.add(projectile.velocity.clone().multiplyScalar(deltaTime));
+            projectile.mesh.position.copy(projectile.position);
+            
+            // 플레이어와 충돌 체크
+            if (this.player && this.player.camera) {
+                const distance = projectile.position.distanceTo(this.player.camera.position);
+                if (distance < 0.5) {
+                    this.player.takeDamage(projectile.damage);
+                    this.removeProjectile(i);
+                    continue;
+                }
+            }
+            
+            // 사거리 체크
+            if (projectile.position.distanceTo(projectile.startPos) > projectile.maxRange) {
+                this.removeProjectile(i);
+            }
+        }
+    }
+    
+    addProjectile(projectile) {
+        this.projectiles.push(projectile);
+    }
+    
+    removeProjectile(index) {
+        if (this.projectiles[index]) {
+            const projectile = this.projectiles[index];
+            if (projectile.mesh) {
+                this.scene.remove(projectile.mesh);
+                projectile.mesh.geometry.dispose();
+                projectile.mesh.material.dispose();
+            }
+            this.projectiles.splice(index, 1);
+        }
+    }
+    
+    spawnEnemy(type, position, player = null, playerController = null) {
+        let enemy;
+        if (type === 'boss') {
+            enemy = new BossEnemy(this.scene, position, player);
+        } else {
+            enemy = new EnemyBase(this.scene, type, position, player);
+        }
+        enemy.setPlayerController(playerController);
+        enemy.setEnemyManager(this); // EnemyManager 참조 설정
+        enemy.onDeath = () => {
+            const isHeadshot = enemy.lastHitWasHeadshot || false;
+            this.removeEnemy(enemy);
+            if (this.onEnemyKilled) {
+                this.onEnemyKilled(enemy, isHeadshot);
+            }
+        };
+        this.enemies.push(enemy);
+        return enemy;
+    }
+    
+    setPlayer(player) {
+        this.player = player;
+        this.enemies.forEach(enemy => {
+            enemy.target = player ? player.camera : null;
+            enemy.setPlayerController(player);
+        });
+    }
+    
+    removeEnemy(enemy) {
+        const index = this.enemies.indexOf(enemy);
+        if (index > -1) {
+            this.enemies.splice(index, 1);
+        }
+    }
+    
+    startWave() {
+        this.currentWave++;
+        const waveSize = this.enemiesPerWave + Math.floor(this.currentWave / 2); // 웨이브마다 적 증가
+        
+        for (let i = 0; i < waveSize; i++) {
+            const spawnPoint = this.getRandomSpawnPoint();
+            // 근접/원거리 적 랜덤 생성
+            const enemyType = Math.random() > 0.5 ? 'bunny' : 'ranged';
+            this.spawnEnemy(
+                enemyType, 
+                spawnPoint, 
+                this.player ? this.player.camera : null,
+                this.player
+            );
+        }
+        
+        // Game 클래스에 웨이브 정보 전달
+        if (this.onWaveStart) {
+            this.onWaveStart(this.currentWave);
+        }
+    }
+    
+    getRandomSpawnPoint() {
+        if (this.spawnPoints.length === 0) {
+            return new THREE.Vector3(
+                (Math.random() - 0.5) * 180,
+                1,
+                (Math.random() - 0.5) * 180
+            );
+        }
+        return this.spawnPoints[Math.floor(Math.random() * this.spawnPoints.length)];
+    }
+    
+    clearAllEnemies() {
+        this.enemies.forEach(enemy => {
+            if (enemy.dispose) {
+                enemy.dispose();
+            }
+        });
+        this.enemies = [];
+    }
+}
+
+// StageManager
+class StageManager {
+    constructor(scene) {
+        this.scene = scene;
+        this.currentStage = null;
+        this.stages = {
+            mossyMeadow: {
+                name: 'Mossy Meadow',
+                music: 'mossyMeadow',
+                enemies: ['bunny'],
+                spawnPoints: []
+            },
+            shroomHollow: {
+                name: 'Shroom Hollow',
+                music: 'shroomHollow',
+                enemies: ['bunny', 'bear'],
+                spawnPoints: []
+            },
+            wreckedFactory: {
+                name: 'Wrecked Factory',
+                music: 'wreckedFactory',
+                enemies: ['deer'],
+                spawnPoints: []
+            },
+            trashTown: {
+                name: 'Trash Town',
+                music: 'trashTown',
+                enemies: ['boss'],
+                spawnPoints: []
+            }
+        };
+        
+        this.onStageChanged = null;
+    }
+    
+    async loadStage(stageKey) {
+        const stage = this.stages[stageKey];
+        if (!stage) return;
+        
+        this.currentStage = stage;
+        
+        this.createStageGeometry(stageKey);
+        this.setupSpawnPoints(stageKey);
+        
+        if (this.onStageChanged) {
+            this.onStageChanged(stage.name);
+        }
+    }
+    
+    createStageGeometry(stageKey) {
+        switch(stageKey) {
+            case 'mossyMeadow':
+                this.createMossyMeadow();
+                break;
+            case 'shroomHollow':
+                this.createShroomHollow();
+                break;
+            case 'wreckedFactory':
+                this.createWreckedFactory();
+                break;
+            case 'trashTown':
+                this.createTrashTown();
+                break;
+        }
+    }
+    
+    createMossyMeadow() {
+        const mapSize = 200;
+        
+        // 지형 텍스처를 위한 여러 레이어
+        const floorGeometry = new THREE.PlaneGeometry(mapSize, mapSize, 20, 20);
+        const floorMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x2d5016, // 진한 초록색 - 확실하게
+            roughness: 0.9,
+            metalness: 0.1
+        });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.position.y = 0; // 명시적으로 Y=0에 배치
+        floor.receiveShadow = true;
+        floor.name = 'ground';
+        this.scene.add(floor);
+        
+        // 바닥이 확실히 보이도록 강제 업데이트
+        floor.material.needsUpdate = true;
+        floor.material.color.setHex(0x2d5016);
+        
+        // 지형 높이 변화 제거 - 평평한 바닥으로 (나중에 개선)
+        // const vertices = floor.geometry.attributes.position;
+        // for (let i = 0; i < vertices.count; i++) {
+        //     const x = vertices.getX(i);
+        //     const z = vertices.getZ(i);
+        //     const y = Math.sin(x * 0.1) * Math.cos(z * 0.1) * 0.5;
+        //     vertices.setY(i, y);
+        // }
+        // vertices.needsUpdate = true;
+        // floor.geometry.computeVertexNormals();
+        
+        this.createWalls(mapSize/2, 25, 0x6b4423);
+        
+        // 나무들 - 더 자연스럽게 배치
+        for (let i = 0; i < 80; i++) {
+            this.createTree(
+                (Math.random() - 0.5) * (mapSize - 20),
+                (Math.random() - 0.5) * (mapSize - 20)
+            );
+        }
+        
+        // 풀들
+        for (let i = 0; i < 200; i++) {
+            this.createGrass(
+                (Math.random() - 0.5) * (mapSize - 20),
+                (Math.random() - 0.5) * (mapSize - 20)
+            );
+        }
+        
+        // 꽃들
+        for (let i = 0; i < 100; i++) {
+            this.createFlower(
+                (Math.random() - 0.5) * (mapSize - 20),
+                (Math.random() - 0.5) * (mapSize - 20)
+            );
+        }
+        
+        // 돌들
+        for (let i = 0; i < 30; i++) {
+            this.createRock(
+                (Math.random() - 0.5) * (mapSize - 20),
+                (Math.random() - 0.5) * (mapSize - 20)
+            );
+        }
+    }
+    
+    createGrass(x, z) {
+        const grassGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.3, 4);
+        const grassMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x4caf50,
+            roughness: 0.8
+        });
+        const grass = new THREE.Mesh(grassGeometry, grassMaterial);
+        grass.position.set(x, 0.15, z);
+        grass.rotation.z = (Math.random() - 0.5) * 0.3;
+        this.scene.add(grass);
+    }
+    
+    createFlower(x, z) {
+        // 꽃잎
+        const petalGeometry = new THREE.SphereGeometry(0.05, 6, 6);
+        const petalMaterial = new THREE.MeshStandardMaterial({ 
+            color: new THREE.Color().setHSL(Math.random(), 0.7, 0.6),
+            roughness: 0.5
+        });
+        
+        for (let i = 0; i < 5; i++) {
+            const petal = new THREE.Mesh(petalGeometry, petalMaterial);
+            const angle = (i / 5) * Math.PI * 2;
+            petal.position.set(
+                x + Math.cos(angle) * 0.08,
+                0.1,
+                z + Math.sin(angle) * 0.08
+            );
+            petal.scale.set(1, 0.3, 1);
+            this.scene.add(petal);
+        }
+        
+        // 꽃 중심
+        const centerGeometry = new THREE.SphereGeometry(0.03, 8, 8);
+        const centerMaterial = new THREE.MeshStandardMaterial({ color: 0xffd700 });
+        const center = new THREE.Mesh(centerGeometry, centerMaterial);
+        center.position.set(x, 0.1, z);
+        this.scene.add(center);
+    }
+    
+    createRock(x, z) {
+        const rockGeometry = new THREE.DodecahedronGeometry(0.3 + Math.random() * 0.2, 0);
+        const rockMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x757575,
+            roughness: 1.0
+        });
+        const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+        rock.position.set(x, 0.3, z);
+        rock.rotation.set(
+            Math.random() * Math.PI,
+            Math.random() * Math.PI,
+            Math.random() * Math.PI
+        );
+        rock.castShadow = true;
+        this.scene.add(rock);
+    }
+    
+    createShroomHollow() {
+        const mapSize = 200;
+        const floorGeometry = new THREE.PlaneGeometry(mapSize, mapSize);
+        const floorMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x9370DB
+        });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        this.scene.add(floor);
+        
+        for (let i = 0; i < 60; i++) {
+            this.createGlowingMushroom(
+                (Math.random() - 0.5) * (mapSize - 20),
+                (Math.random() - 0.5) * (mapSize - 20)
+            );
+        }
+    }
+    
+    createWreckedFactory() {
+        const mapSize = 200;
+        const floorGeometry = new THREE.PlaneGeometry(mapSize, mapSize);
+        const floorMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x708090
+        });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        this.scene.add(floor);
+        
+        this.createMachineStructures();
+    }
+    
+    createTrashTown() {
+        const mapSize = 200;
+        const floorGeometry = new THREE.PlaneGeometry(mapSize, mapSize);
+        const floorMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x2F4F4F
+        });
+        const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+        floor.rotation.x = -Math.PI / 2;
+        floor.receiveShadow = true;
+        this.scene.add(floor);
+        
+        this.createNeonStructures();
+    }
+    
+    createWalls(width, height, color) {
+        const wallMaterial = new THREE.MeshStandardMaterial({ color });
+        const wallThickness = 1;
+        
+        const walls = [
+            { pos: [0, height/2, -width/2], size: [width, height, wallThickness] },
+            { pos: [0, height/2, width/2], size: [width, height, wallThickness] },
+            { pos: [-width/2, height/2, 0], size: [wallThickness, height, width] },
+            { pos: [width/2, height/2, 0], size: [wallThickness, height, width] }
+        ];
+        
+        walls.forEach(wall => {
+            const geometry = new THREE.BoxGeometry(...wall.size);
+            const mesh = new THREE.Mesh(geometry, wallMaterial);
+            mesh.position.set(...wall.pos);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            this.scene.add(mesh);
+        });
+    }
+    
+    createTree(x, z) {
+        // 나무 줄기 - 높이와 두께 다양화
+        const trunkHeight = 2 + Math.random() * 2;
+        const trunkRadius = 0.2 + Math.random() * 0.2;
+        const trunkGeometry = new THREE.CylinderGeometry(trunkRadius * 0.8, trunkRadius, trunkHeight, 8);
+        const trunkMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x6b4423,
+            roughness: 0.9
+        });
+        const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+        trunk.position.set(x, trunkHeight / 2, z);
+        trunk.castShadow = true;
+        trunk.receiveShadow = true;
+        this.scene.add(trunk);
+        
+        // 나뭇잎 - 여러 레이어로 자연스럽게
+        const leafLayers = 2 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < leafLayers; i++) {
+            const leafSize = 1.5 + Math.random() * 1;
+            const leafHeight = 1 + Math.random() * 0.5;
+            const leavesGeometry = new THREE.ConeGeometry(leafSize, leafHeight, 8);
+            const leavesMaterial = new THREE.MeshStandardMaterial({ 
+                color: new THREE.Color().setHSL(0.25 + Math.random() * 0.1, 0.6, 0.4),
+                roughness: 0.8
+            });
+            const leaves = new THREE.Mesh(leavesGeometry, leavesMaterial);
+            leaves.position.set(
+                x + (Math.random() - 0.5) * 0.3,
+                trunkHeight + i * 0.8,
+                z + (Math.random() - 0.5) * 0.3
+            );
+            leaves.rotation.z = (Math.random() - 0.5) * 0.2;
+            leaves.castShadow = true;
+            leaves.receiveShadow = true;
+            this.scene.add(leaves);
+        }
+    }
+    
+    createGlowingMushroom(x, z) {
+        const stemGeometry = new THREE.CylinderGeometry(0.2, 0.2, 1, 8);
+        const stemMaterial = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
+        const stem = new THREE.Mesh(stemGeometry, stemMaterial);
+        stem.position.set(x, 0.5, z);
+        this.scene.add(stem);
+        
+        const capGeometry = new THREE.SphereGeometry(0.8, 8, 8);
+        const capMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0xFF69B4,
+            emissive: 0xFF1493,
+            emissiveIntensity: 0.5
+        });
+        const cap = new THREE.Mesh(capGeometry, capMaterial);
+        cap.position.set(x, 1.5, z);
+        cap.scale.set(1, 0.5, 1);
+        this.scene.add(cap);
+        
+        const light = new THREE.PointLight(0xFF1493, 1, 5);
+        light.position.set(x, 1.5, z);
+        this.scene.add(light);
+    }
+    
+    createMachineStructures() {
+        for (let i = 0; i < 30; i++) {
+            const geometry = new THREE.BoxGeometry(2, 4, 2);
+            const material = new THREE.MeshStandardMaterial({ color: 0x696969 });
+            const machine = new THREE.Mesh(geometry, material);
+            machine.position.set(
+                (Math.random() - 0.5) * 180,
+                2,
+                (Math.random() - 0.5) * 180
+            );
+            machine.castShadow = true;
+            this.scene.add(machine);
+        }
+    }
+    
+    createNeonStructures() {
+        for (let i = 0; i < 40; i++) {
+            const geometry = new THREE.BoxGeometry(1, 3, 1);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: 0xFF1493,
+                emissive: 0xFF1493,
+                emissiveIntensity: 0.8
+            });
+            const neon = new THREE.Mesh(geometry, material);
+            neon.position.set(
+                (Math.random() - 0.5) * 180,
+                1.5,
+                (Math.random() - 0.5) * 180
+            );
+            this.scene.add(neon);
+            
+            const light = new THREE.PointLight(0xFF1493, 2, 10);
+            light.position.copy(neon.position);
+            this.scene.add(light);
+        }
+    }
+    
+    setupSpawnPoints(stageKey) {
+        const stage = this.stages[stageKey];
+        stage.spawnPoints = [];
+        const mapSize = 200;
+        
+        for (let i = 0; i < 20; i++) {
+            stage.spawnPoints.push(new THREE.Vector3(
+                (Math.random() - 0.5) * (mapSize - 20),
+                1,
+                (Math.random() - 0.5) * (mapSize - 20)
+            ));
+        }
+    }
+    
+    update(deltaTime) {
+    }
+}
+
+// ParticleSystem
+class ParticleSystem {
+    constructor(scene) {
+        this.scene = scene;
+        this.particles = [];
+    }
+    
+    createExplosion(position, color = 0xff6b6b, count = 20) {
+        for (let i = 0; i < count; i++) {
+            const geometry = new THREE.SphereGeometry(0.1, 4, 4);
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const particle = new THREE.Mesh(geometry, material);
+            particle.position.copy(position);
+            this.scene.add(particle);
+            
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 10,
+                (Math.random() - 0.5) * 10,
+                (Math.random() - 0.5) * 10
+            );
+            
+            this.particles.push({
+                mesh: particle,
+                velocity: velocity,
+                life: 1.0,
+                decay: 0.02 + Math.random() * 0.03
+            });
+        }
+    }
+    
+    createSpark(position, direction) {
+        const geometry = new THREE.SphereGeometry(0.05, 4, 4);
+        const material = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+        const spark = new THREE.Mesh(geometry, material);
+        spark.position.copy(position);
+        this.scene.add(spark);
+        
+        const velocity = direction.clone().multiplyScalar(-0.5).add(
+            new THREE.Vector3(
+                (Math.random() - 0.5) * 2,
+                (Math.random() - 0.5) * 2,
+                (Math.random() - 0.5) * 2
+            )
+        );
+        
+        this.particles.push({
+            mesh: spark,
+            velocity: velocity,
+            life: 0.5,
+            decay: 0.05
+        });
+    }
+    
+    update(deltaTime) {
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const particle = this.particles[i];
+            particle.life -= particle.decay;
+            
+            if (particle.life <= 0) {
+                this.scene.remove(particle.mesh);
+                particle.mesh.geometry.dispose();
+                particle.mesh.material.dispose();
+                this.particles.splice(i, 1);
+                continue;
+            }
+            
+            particle.mesh.position.add(particle.velocity.clone().multiplyScalar(deltaTime));
+            particle.velocity.multiplyScalar(0.95); // 저항
+            particle.mesh.material.opacity = particle.life;
+            particle.mesh.scale.multiplyScalar(0.98);
+        }
+    }
+}
+
+// ScoreManager
+class ScoreManager {
+    constructor() {
+        this.score = 0;
+        this.combo = 0;
+        this.comboTimer = 0;
+        this.comboTimeLimit = 3; // 3초 내에 킬해야 콤보 유지
+        this.lastKillTime = 0;
+    }
+    
+    addScore(points, isHeadshot = false) {
+        const now = Date.now() / 1000;
+        
+        // 콤보 체크
+        if (now - this.lastKillTime < this.comboTimeLimit) {
+            this.combo++;
+        } else {
+            this.combo = 1;
+        }
+        
+        this.lastKillTime = now;
+        
+        // 점수 계산 (콤보 보너스)
+        let finalPoints = points;
+        if (isHeadshot) {
+            finalPoints *= 2; // 헤드샷 보너스
+        }
+        finalPoints *= (1 + this.combo * 0.1); // 콤보 보너스
+        
+        this.score += Math.round(finalPoints);
+        
+        return {
+            points: Math.round(finalPoints),
+            combo: this.combo,
+            isHeadshot: isHeadshot
+        };
+    }
+    
+    update(deltaTime) {
+        const now = Date.now() / 1000;
+        if (now - this.lastKillTime > this.comboTimeLimit) {
+            this.combo = 0;
+        }
+    }
+    
+    reset() {
+        this.score = 0;
+        this.combo = 0;
+        this.lastKillTime = 0;
+    }
+}
+
+// UIManager
+class UIManager {
+    constructor() {
+        this.elements = {
+            healthBar: document.getElementById('healthBarFill'),
+            healthText: document.getElementById('healthText'),
+            ammoCount: document.getElementById('ammoCount'),
+            weaponName: document.getElementById('weaponName'),
+            sugarBar: document.getElementById('sugarBarFill'),
+            sugarText: document.getElementById('sugarText'),
+            stageTitle: document.getElementById('stageTitle'),
+            interactionPrompt: document.getElementById('interactionPrompt'),
+            dialogueBox: document.getElementById('dialogueBox'),
+            dialogueText: document.getElementById('dialogueText'),
+            lowHealthVignette: document.getElementById('lowHealthVignette'),
+            sugarRushOverlay: document.getElementById('sugarRushOverlay'),
+            scoreValue: document.getElementById('scoreValue'),
+            comboDisplay: document.getElementById('comboDisplay'),
+            comboValue: document.getElementById('comboValue'),
+            bossHealthBar: document.getElementById('bossHealthBar'),
+            bossHealthFill: document.getElementById('bossHealthFill'),
+            bossHealthText: document.getElementById('bossHealthText')
+        };
+    }
+    
+    updateHealth(current, max) {
+        const percent = (current / max) * 100;
+        this.elements.healthBar.style.width = percent + '%';
+        this.elements.healthText.textContent = `${current} / ${max}`;
+        
+        if (percent < 30) {
+            this.elements.lowHealthVignette.classList.remove('hidden');
+        } else {
+            this.elements.lowHealthVignette.classList.add('hidden');
+        }
+    }
+    
+    updateAmmo(current, max) {
+        this.elements.ammoCount.textContent = `${current} / ${max}`;
+    }
+    
+    updateWeaponName(name) {
+        this.elements.weaponName.textContent = name;
+    }
+    
+    updateSugarMeter(current, max) {
+        const percent = (current / max) * 100;
+        this.elements.sugarBar.style.width = percent + '%';
+        this.elements.sugarText.textContent = Math.round(percent) + '%';
+    }
+    
+    showStageTitle(stageName) {
+        this.elements.stageTitle.textContent = stageName;
+        this.elements.stageTitle.style.display = 'block';
+        
+        setTimeout(() => {
+            this.elements.stageTitle.style.display = 'none';
+        }, 3000);
+    }
+    
+    showInteractionPrompt(text = 'Press E to interact') {
+        this.elements.interactionPrompt.textContent = text;
+        this.elements.interactionPrompt.classList.remove('hidden');
+    }
+    
+    hideInteractionPrompt() {
+        this.elements.interactionPrompt.classList.add('hidden');
+    }
+    
+    showDialogue(text) {
+        this.elements.dialogueText.textContent = text;
+        this.elements.dialogueBox.classList.remove('hidden');
+    }
+    
+    hideDialogue() {
+        this.elements.dialogueBox.classList.add('hidden');
+    }
+    
+    toggleSugarRushOverlay(active) {
+        if (active) {
+            this.elements.sugarRushOverlay.classList.remove('hidden');
+        } else {
+            this.elements.sugarRushOverlay.classList.add('hidden');
+        }
+    }
+    
+    updateScore(score) {
+        this.elements.scoreValue.textContent = score.toLocaleString();
+    }
+    
+    updateCombo(combo, isHeadshot = false) {
+        if (combo > 1) {
+            this.elements.comboDisplay.style.display = 'block';
+            this.elements.comboValue.textContent = combo;
+            if (isHeadshot) {
+                this.elements.comboDisplay.style.color = '#ff0000';
+                this.elements.comboDisplay.textContent = `HEADSHOT! Combo x${combo}!`;
+            } else {
+                this.elements.comboDisplay.style.color = '#ffd700';
+                this.elements.comboDisplay.textContent = `Combo x${combo}!`;
+            }
+            
+            // 콤보 표시 애니메이션
+            this.elements.comboDisplay.style.animation = 'none';
+            setTimeout(() => {
+                this.elements.comboDisplay.style.animation = 'bounce 0.5s ease-in-out';
+            }, 10);
+        } else {
+            this.elements.comboDisplay.style.display = 'none';
+        }
+    }
+    
+    showBossHealth(current, max) {
+        this.elements.bossHealthBar.classList.remove('hidden');
+        const percent = (current / max) * 100;
+        this.elements.bossHealthFill.style.width = percent + '%';
+        this.elements.bossHealthText.textContent = Math.round(percent) + '%';
+    }
+    
+    hideBossHealth() {
+        this.elements.bossHealthBar.classList.add('hidden');
+    }
+}
+
+// SoundManager
+class SoundManager {
+    constructor() {
+        this.sounds = {};
+        this.music = {};
+        this.currentMusic = null;
+        this.musicVolume = 0.5;
+        this.sfxVolume = 0.7;
+        
+        this.init();
+    }
+    
+    init() {
+        this.sounds = {
+            shoot: this.createAudio('sounds/shoot.mp3'),
+            reload: this.createAudio('sounds/reload.mp3'),
+            enemyDeath: this.createAudio('sounds/enemyDeath.mp3'),
+            playerHit: this.createAudio('sounds/playerHit.mp3'),
+            pickup: this.createAudio('sounds/pickup.mp3'),
+            sugarRush: this.createAudio('sounds/sugarRush.mp3'),
+            melee: this.createAudio('sounds/melee.mp3')
+        };
+        
+        this.music = {
+            mossyMeadow: this.createAudio('music/mossyMeadow.mp3', true),
+            shroomHollow: this.createAudio('music/shroomHollow.mp3', true),
+            wreckedFactory: this.createAudio('music/wreckedFactory.mp3', true),
+            trashTown: this.createAudio('music/trashTown.mp3', true),
+            boss: this.createAudio('music/boss.mp3', true)
+        };
+        
+        Object.values(this.music).forEach(audio => {
+            audio.volume = this.musicVolume;
+            audio.loop = true;
+        });
+        
+        Object.values(this.sounds).forEach(audio => {
+            audio.volume = this.sfxVolume;
+        });
+    }
+    
+    createAudio(src, isMusic = false) {
+        const audio = new Audio();
+        audio.src = src;
+        audio.loop = isMusic;
+        
+        // 오디오 로딩 실패 시 조용히 처리 (파일이 없어도 게임은 계속 작동)
+        audio.addEventListener('error', (e) => {
+            // 오류를 콘솔에 표시하지 않음 (파일이 없어도 게임은 정상 작동)
+            // console.log('Audio file not found (optional):', src);
+        }, { once: true });
+        
+        // 오디오 로딩 시도 (load()는 Promise를 반환하지 않으므로 catch 사용 안 함)
+        try {
+            audio.load();
+        } catch (e) {
+            // 조용히 실패 처리
+        }
+        
+        return audio;
+    }
+    
+    play(soundName) {
+        const sound = this.sounds[soundName];
+        if (sound) {
+            sound.currentTime = 0;
+            // 사운드 재생 실패 시 조용히 처리 (파일이 없어도 게임은 계속 작동)
+            sound.play().catch(() => {
+                // 조용히 실패 처리
+            });
+        }
+    }
+    
+    playStageMusic(stageName) {
+        if (this.currentMusic) {
+            this.currentMusic.pause();
+            this.currentMusic.currentTime = 0;
+        }
+        
+        const music = this.music[stageName];
+        if (music) {
+            this.currentMusic = music;
+            // 음악 재생 실패 시 조용히 처리 (파일이 없어도 게임은 계속 작동)
+            music.play().catch(() => {
+                // 조용히 실패 처리
+            });
+        }
+    }
+    
+    playBossMusic() {
+        this.playStageMusic('boss');
+    }
+    
+    stopMusic() {
+        if (this.currentMusic) {
+            this.currentMusic.pause();
+            this.currentMusic.currentTime = 0;
+            this.currentMusic = null;
+        }
+    }
+    
+    setMusicVolume(volume) {
+        this.musicVolume = volume;
+        Object.values(this.music).forEach(audio => {
+            audio.volume = volume;
+        });
+    }
+    
+    setSFXVolume(volume) {
+        this.sfxVolume = volume;
+        Object.values(this.sounds).forEach(audio => {
+            audio.volume = volume;
+        });
+    }
+}
+
+// PlayerController
+class PlayerController {
+    constructor(camera, scene) {
+        this.camera = camera;
+        this.scene = scene;
+        this.inputManager = new InputManager();
+        
+        this.speed = 8;
+        this.runSpeed = 12;
+        this.jumpHeight = 8;
+        this.gravity = -25;
+        this.dashDistance = 5;
+        this.dashCooldown = 1;
+        this.dashTimer = 0;
+        
+        this.velocity = new THREE.Vector3();
+        this.isGrounded = true;
+        this.isRunning = false;
+        this.isCrouching = false;
+        this.jumpPressed = false;
+        this.jumpCooldown = 0;
+        this.lastJumpTime = 0;
+        
+        this.mouseSensitivity = 0.001;
+        this.verticalRotation = 0;
+        this.maxVerticalAngle = Math.PI / 2 - 0.1;
+        
+        this.cameraBobAmount = 0.05;
+        this.cameraBobSpeed = 10;
+        this.cameraBobTimer = 0;
+        this.originalCameraY = camera.position.y;
+        
+        this.trashSenseRange = 10;
+        this.trashSenseActive = false;
+        
+        this.maxHealth = 100;
+        this.currentHealth = 100;
+        this.sugarMeter = 0;
+        this.maxSugarMeter = 100;
+        
+        this.collidableObjects = [];
+        this.playerRadius = 0.3;
+        this.collisionEnabled = false; // 일단 충돌 감지 비활성화 (디버깅용)
+        
+        this.onHealthChanged = null;
+        this.onSugarRushToggle = null;
+        
+        this.setupControls();
+    }
+    
+    setupControls() {
+        const canvas = document.getElementById('gameCanvas');
+        canvas.addEventListener('click', () => {
+            canvas.requestPointerLock();
+        });
+        
+        // Space 키 직접 리스너 - 완전히 새로운 방식
+        const self = this;
+        
+        // 전역 키 이벤트 핸들러 - Space 키만 처리
+        this._globalJumpHandler = (e) => {
+            const isSpace = e.code === 'Space' || e.key === ' ' || e.key === 'Space' || e.keyCode === 32;
+            if (isSpace) {
+                // Space 키만 preventDefault (다른 키는 방해하지 않음)
+                e.preventDefault();
+                
+                const now = Date.now();
+                const timeSinceLastJump = now - self.lastJumpTime;
+                
+                // 점프 조건 - 매우 관대하게
+                const canJump = (self.isGrounded || self.camera.position.y <= 1.7) && 
+                               !self.isCrouching && 
+                               timeSinceLastJump > 150;
+                
+                if (canJump) {
+                    self.velocity.y = self.jumpHeight;
+                    self.isGrounded = false;
+                    self.jumpCooldown = 0.2;
+                    self.lastJumpTime = now;
+                    self.jumpPressed = true;
+                }
+            }
+            // 다른 키는 그대로 통과시킴 (WASD 등)
+        };
+        
+        this._globalJumpUpHandler = (e) => {
+            const isSpace = e.code === 'Space' || e.key === ' ' || e.key === 'Space' || e.keyCode === 32;
+            if (isSpace) {
+                self.jumpPressed = false;
+            }
+        };
+        
+        // 최우선으로 리스너 추가
+        window.addEventListener('keydown', this._globalJumpHandler, {capture: true, passive: false});
+        document.addEventListener('keydown', this._globalJumpHandler, {capture: true, passive: false});
+        window.addEventListener('keyup', this._globalJumpUpHandler, {capture: true, passive: false});
+    }
+    
+    setCollidableObjects(objects) {
+        this.collidableObjects = objects;
+    }
+    
+    update(deltaTime) {
+        this.handleMouseLook();
+        this.handleJump(deltaTime); // 점프를 먼저 처리
+        this.handleMovement(deltaTime);
+        this.handleDash(deltaTime);
+        this.handleCrouch();
+        this.handleTrashSense();
+        this.applyGravity(deltaTime);
+        this.updateCameraBob(deltaTime);
+        this.checkGround();
+    }
+    
+    handleMouseLook() {
+        const mouseDelta = this.inputManager.getMouseDelta();
+        
+        // Three.js Euler 회전 순서를 'YXZ'로 설정하여 수평/수직 회전을 완전히 분리
+        // 이렇게 하면 Y축 회전(수평)이 X축 회전(수직)에 영향을 주지 않음
+        this.camera.rotation.order = 'YXZ';
+        
+        // 수평 회전 (Y축) - 좌우만 처리 (수직 회전과 완전히 독립적)
+        if (mouseDelta.x !== 0) {
+            this.camera.rotation.y -= mouseDelta.x * this.mouseSensitivity;
+        }
+        
+        // 수직 회전 (X축) - 상하만 처리 (수평 회전과 완전히 독립적)
+        if (mouseDelta.y !== 0) {
+            this.verticalRotation -= mouseDelta.y * this.mouseSensitivity;
+            this.verticalRotation = Math.max(-this.maxVerticalAngle, 
+                                            Math.min(this.maxVerticalAngle, this.verticalRotation));
+            // X축 회전만 업데이트 (Y축 회전은 변경하지 않음)
+            this.camera.rotation.x = this.verticalRotation;
+        }
+        
+        // Z축 회전은 항상 0으로 유지 (롤 방지)
+        this.camera.rotation.z = 0;
+    }
+    
+    handleMovement(deltaTime) {
+        this.isRunning = this.inputManager.isKeyPressed('ShiftLeft');
+        const speed = this.isRunning ? this.runSpeed : this.speed;
+        
+        const direction = new THREE.Vector3();
+        let hasInput = false;
+        
+        // WASD 키 입력 확인 (명시적으로 체크)
+        const wPressed = this.inputManager.isKeyPressed('KeyW');
+        const sPressed = this.inputManager.isKeyPressed('KeyS');
+        const aPressed = this.inputManager.isKeyPressed('KeyA');
+        const dPressed = this.inputManager.isKeyPressed('KeyD');
+        
+        if (wPressed) {
+            direction.z -= 1;
+            hasInput = true;
+        }
+        if (sPressed) {
+            direction.z += 1;
+            hasInput = true;
+        }
+        if (aPressed) {
+            direction.x -= 1;
+            hasInput = true;
+        }
+        if (dPressed) {
+            direction.x += 1;
+            hasInput = true;
+        }
+        
+        // 디버깅: 키 입력 상태 확인 (너무 많은 로그 방지)
+        // if (wPressed || sPressed || aPressed || dPressed) {
+        //     console.log('WASD pressed:', {w: wPressed, s: sPressed, a: aPressed, d: dPressed, hasInput});
+        // }
+        
+        if (!hasInput) {
+            // 입력이 없으면 속도를 점진적으로 감소
+            this.velocity.x *= 0.9;
+            this.velocity.z *= 0.9;
+            
+            // 속도가 거의 0이면 완전히 멈춤
+            if (Math.abs(this.velocity.x) < 0.01) this.velocity.x = 0;
+            if (Math.abs(this.velocity.z) < 0.01) this.velocity.z = 0;
+            
+            // 감소된 속도로 이동 (충돌 체크 포함)
+            if (this.velocity.x !== 0 || this.velocity.z !== 0) {
+                const newX = this.camera.position.x + this.velocity.x * deltaTime;
+                const newZ = this.camera.position.z + this.velocity.z * deltaTime;
+                
+                // 충돌 체크
+                if (this.collisionEnabled && this.collidableObjects.length > 0) {
+                    if (!this.checkCollision(newX, this.camera.position.y, this.camera.position.z)) {
+                        this.camera.position.x = newX;
+                    } else {
+                        this.velocity.x = 0;
+                    }
+                    if (!this.checkCollision(this.camera.position.x, this.camera.position.y, newZ)) {
+                        this.camera.position.z = newZ;
+                    } else {
+                        this.velocity.z = 0;
+                    }
+                } else {
+                    this.camera.position.x = newX;
+                    this.camera.position.z = newZ;
+                }
+            }
+            return;
+        }
+        
+        // direction이 0이 아닐 때만 normalize
+        const dirLength = Math.sqrt(direction.x * direction.x + direction.z * direction.z);
+        if (dirLength > 0.01) {
+            direction.normalize();
+        } else {
+            return; // 입력이 없으면 종료
+        }
+        
+        const cameraDirection = new THREE.Vector3();
+        this.camera.getWorldDirection(cameraDirection);
+        cameraDirection.y = 0;
+        cameraDirection.normalize();
+        
+        const right = new THREE.Vector3();
+        right.crossVectors(cameraDirection, new THREE.Vector3(0, 1, 0));
+        
+        const moveDirection = new THREE.Vector3();
+        moveDirection.addScaledVector(cameraDirection, -direction.z);
+        moveDirection.addScaledVector(right, direction.x);
+        moveDirection.normalize();
+        
+        this.velocity.x = moveDirection.x * speed;
+        this.velocity.z = moveDirection.z * speed;
+        
+        // 이동 적용 - 충돌 체크 포함
+        const newX = this.camera.position.x + this.velocity.x * deltaTime;
+        const newZ = this.camera.position.z + this.velocity.z * deltaTime;
+        
+        // 디버깅: 이동 정보 확인
+        // console.log('Movement:', {
+        //     velocity: {x: this.velocity.x, z: this.velocity.z},
+        //     moveDirection: {x: moveDirection.x, z: moveDirection.z},
+        //     speed: speed,
+        //     deltaTime: deltaTime,
+        //     newPos: {x: newX, z: newZ},
+        //     currentPos: {x: this.camera.position.x, z: this.camera.position.z}
+        // });
+        
+        // 충돌 체크
+        if (this.collisionEnabled && this.collidableObjects.length > 0) {
+            // X축 이동 체크
+            const xCollision = this.checkCollision(newX, this.camera.position.y, this.camera.position.z);
+            if (!xCollision) {
+                this.camera.position.x = newX;
+            } else {
+                this.velocity.x = 0; // 충돌 시 멈춤
+            }
+            
+            // Z축 이동 체크
+            const zCollision = this.checkCollision(this.camera.position.x, this.camera.position.y, newZ);
+            if (!zCollision) {
+                this.camera.position.z = newZ;
+            } else {
+                this.velocity.z = 0; // 충돌 시 멈춤
+            }
+        } else {
+            // 충돌 감지 비활성화 시 바로 이동
+            this.camera.position.x = newX;
+            this.camera.position.z = newZ;
+        }
+        
+        // 맵 경계 체크 (벽 통과 방지) - 맵 크기 200 기준
+        const mapSize = 100; // 맵 크기의 절반 (200/2)
+        if (Math.abs(this.camera.position.x) > mapSize) {
+            this.camera.position.x = Math.sign(this.camera.position.x) * mapSize;
+            this.velocity.x = 0;
+        }
+        if (Math.abs(this.camera.position.z) > mapSize) {
+            this.camera.position.z = Math.sign(this.camera.position.z) * mapSize;
+            this.velocity.z = 0;
+        }
+    }
+    
+    checkCollision(x, y, z) {
+        if (!this.collisionEnabled || this.collidableObjects.length === 0) {
+            return false; // 충돌 감지 비활성화 또는 오브젝트 없음
+        }
+        
+        const playerPos = new THREE.Vector3(x, y, z);
+        
+        for (let obj of this.collidableObjects) {
+            if (!obj || !obj.position || !obj.geometry) continue;
+            
+            try {
+                // 월드 좌표로 변환
+                const objWorldPos = new THREE.Vector3();
+                obj.getWorldPosition(objWorldPos);
+                
+                // Y축은 무시하고 XZ 평면에서만 체크
+                const playerXZ = new THREE.Vector2(x, z);
+                const objXZ = new THREE.Vector2(objWorldPos.x, objWorldPos.z);
+                const distance = playerXZ.distanceTo(objXZ);
+                
+                // 간단한 원형 충돌 체크
+                let objRadius = 1;
+                if (obj.geometry.type === 'BoxGeometry') {
+                    const params = obj.geometry.parameters || {};
+                    objRadius = Math.max(
+                        (params.width || 1) * (obj.scale?.x || 1),
+                        (params.depth || 1) * (obj.scale?.z || 1)
+                    ) / 2;
+                } else if (obj.geometry.type === 'CylinderGeometry') {
+                    const params = obj.geometry.parameters || {};
+                    objRadius = Math.max(
+                        (params.radiusTop || params.radius || 1) * (obj.scale?.x || 1),
+                        (params.radius || 1) * (obj.scale?.x || 1)
+                    );
+                } else if (obj.geometry.type === 'ConeGeometry') {
+                    const params = obj.geometry.parameters || {};
+                    objRadius = (params.radius || 1) * (obj.scale?.x || 1);
+                } else if (obj.geometry.type === 'DodecahedronGeometry') {
+                    const params = obj.geometry.parameters || {};
+                    objRadius = (params.radius || 0.3) * (obj.scale?.x || 1);
+                }
+                
+                // 충돌 거리 계산 (플레이어 반지름 + 오브젝트 반지름 + 여유 공간)
+                const collisionDistance = this.playerRadius + objRadius + 0.3;
+                if (distance < collisionDistance) {
+                    return true;
+                }
+            } catch (e) {
+                // 오류 발생 시 해당 오브젝트 스킵
+                continue;
+            }
+        }
+        return false;
+    }
+    
+    handleJump(deltaTime) {
+        this.jumpCooldown -= deltaTime;
+        
+        // InputManager를 통한 점프도 체크
+        const spaceFromInput = (this.inputManager && (
+            this.inputManager.isKeyPressed('Space') || 
+            this.inputManager.isKeyPressed(' ') ||
+            (this.inputManager.keys && (this.inputManager.keys['Space'] || this.inputManager.keys[' ']))
+        ));
+        
+        if (spaceFromInput || this.jumpPressed) {
+            const now = Date.now();
+            const timeSinceLastJump = now - this.lastJumpTime;
+            const canJump = (this.isGrounded || this.camera.position.y <= 1.7) && 
+                           !this.isCrouching && 
+                           timeSinceLastJump > 150;
+            
+            if (canJump) {
+                this.velocity.y = this.jumpHeight;
+                this.isGrounded = false;
+                this.jumpCooldown = 0.2;
+                this.lastJumpTime = now;
+                this.jumpPressed = false;
+                console.log('=== JUMP FROM HANDLEJUMP ===', this.velocity.y);
+            }
+        }
+    }
+    
+    handleDash(deltaTime) {
+        this.dashTimer -= deltaTime;
+        
+        if (this.inputManager.isKeyPressed('KeyQ') && this.dashTimer <= 0) {
+            const direction = new THREE.Vector3();
+            this.camera.getWorldDirection(direction);
+            direction.y = 0;
+            direction.normalize();
+            
+            this.camera.position.addScaledVector(direction, this.dashDistance);
+            this.dashTimer = this.dashCooldown;
+        }
+    }
+    
+    handleCrouch() {
+        // 점프 중이면 앉기 무시
+        if (!this.isGrounded && this.velocity.y > 0) {
+            return;
+        }
+        
+        const wasCrouching = this.isCrouching;
+        if (this.inputManager.isKeyPressed('ControlLeft')) {
+            this.isCrouching = true;
+            if (!wasCrouching && this.isGrounded) {
+                this.camera.position.y = this.originalCameraY * 0.5;
+            }
+        } else {
+            this.isCrouching = false;
+            if (wasCrouching && this.isGrounded) {
+                this.camera.position.y = this.originalCameraY;
+            }
+        }
+    }
+    
+    handleTrashSense() {
+        this.trashSenseActive = this.inputManager.isKeyPressed('Tab');
+    }
+    
+    applyGravity(deltaTime) {
+        // 항상 중력 적용
+        this.velocity.y += this.gravity * deltaTime;
+        
+        this.camera.position.y += this.velocity.y * deltaTime;
+        
+        // 바닥 높이 체크 - velocity.y가 양수면(점프 중) 체크 안함
+        const groundHeight = 1.6;
+        const tolerance = 0.1;
+        
+        // 아래로 떨어지고 있을 때만 바닥 체크
+        if (this.velocity.y <= 0 && this.camera.position.y <= groundHeight + tolerance) {
+            // 바닥에 닿았거나 바닥 아래로 떨어졌을 때
+            if (this.camera.position.y < groundHeight) {
+                this.camera.position.y = groundHeight;
+            }
+            
+            // 아래로 떨어지고 있으면 착지
+            if (this.velocity.y <= 0) {
+                this.velocity.y = 0;
+                this.isGrounded = true;
+            }
+        } else if (this.velocity.y > 0) {
+            // 위로 올라가고 있으면 (점프 중)
+            this.isGrounded = false;
+        } else {
+            // 공중에 있으면
+            this.isGrounded = false;
+        }
+    }
+    
+    checkGround() {
+        // 간단한 높이 체크로 충분
+        // applyGravity에서 이미 처리됨
+    }
+    
+    updateCameraBob(deltaTime) {
+        // 점프 중이면 카메라 밥 무시
+        if (!this.isGrounded && this.velocity.y > 0) {
+            return;
+        }
+        
+        if (this.isGrounded && !this.isCrouching && (this.velocity.x !== 0 || this.velocity.z !== 0)) {
+            this.cameraBobTimer += deltaTime * this.cameraBobSpeed * 
+                                   (this.isRunning ? 1.5 : 1);
+            const bobOffset = Math.sin(this.cameraBobTimer) * this.cameraBobAmount;
+            const baseY = this.isCrouching ? this.originalCameraY * 0.5 : this.originalCameraY;
+            this.camera.position.y = baseY + bobOffset;
+        } else {
+            this.cameraBobTimer = 0;
+            if (!this.isCrouching && this.isGrounded) {
+                this.camera.position.y = this.originalCameraY;
+            }
+        }
+    }
+    
+    takeDamage(amount) {
+        this.currentHealth = Math.max(0, this.currentHealth - amount);
+        if (this.onHealthChanged) {
+            this.onHealthChanged(this.currentHealth, this.maxHealth);
+        }
+        
+        if (this.currentHealth <= 0) {
+            this.die();
+        }
+    }
+    
+    heal(amount) {
+        this.currentHealth = Math.min(this.maxHealth, this.currentHealth + amount);
+        if (this.onHealthChanged) {
+            this.onHealthChanged(this.currentHealth, this.maxHealth);
+        }
+    }
+    
+    addSugar(amount) {
+        this.sugarMeter = Math.min(this.maxSugarMeter, this.sugarMeter + amount);
+    }
+    
+    activateSugarRush() {
+        if (this.sugarMeter >= this.maxSugarMeter) {
+            if (this.onSugarRushToggle) {
+                this.onSugarRushToggle(true);
+            }
+            this.sugarMeter = 0;
+            setTimeout(() => {
+                if (this.onSugarRushToggle) {
+                    this.onSugarRushToggle(false);
+                }
+            }, 5000);
+        }
+    }
+    
+    die() {
+    }
+    
+    getPosition() {
+        return this.camera.position.clone();
+    }
+    
+    getForwardDirection() {
+        const direction = new THREE.Vector3();
+        this.camera.getWorldDirection(direction);
+        return direction;
+    }
+}
+
+// PowerUp
+class PowerUp {
+    constructor(scene, position, type) {
+        this.scene = scene;
+        this.position = position.clone();
+        this.type = type; // 'health', 'ammo', 'speed', 'damage'
+        this.collected = false;
+        this.createMesh();
+    }
+    
+    createMesh() {
+        const colors = {
+            'health': 0xff69b4,
+            'ammo': 0x4169e1,
+            'speed': 0x00ff00,
+            'damage': 0xff0000
+        };
+        
+        const geometry = new THREE.SphereGeometry(0.3, 8, 8);
+        const material = new THREE.MeshStandardMaterial({ 
+            color: colors[this.type] || 0xffffff,
+            emissive: colors[this.type] || 0xffffff,
+            emissiveIntensity: 0.5
+        });
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.position.copy(this.position);
+        this.mesh.position.y += 0.3;
+        this.scene.add(this.mesh);
+    }
+    
+    update(deltaTime) {
+        if (this.collected) return;
+        this.mesh.rotation.y += deltaTime * 2;
+        this.mesh.position.y = this.position.y + 0.3 + Math.sin(Date.now() * 0.003) * 0.2;
+    }
+    
+    checkCollection(playerPos) {
+        if (this.collected) return false;
+        const distance = this.position.distanceTo(playerPos);
+        if (distance < 1.0) {
+            this.collect();
+            return true;
+        }
+        return false;
+    }
+    
+    collect() {
+        this.collected = true;
+        this.scene.remove(this.mesh);
+        this.mesh.geometry.dispose();
+        this.mesh.material.dispose();
+    }
+}
+
+// BossEnemy
+class BossEnemy extends EnemyBase {
+    constructor(scene, position, player = null) {
+        super(scene, 'boss', position, player);
+        this.maxHealth = 200;
+        this.currentHealth = 200;
+        this.speed = 2;
+        this.attackRange = 20;
+        this.attackDamage = 15;
+        this.attackCooldown = 1;
+        this.isBoss = true;
+        this.phase = 1; // 1, 2, 3
+    }
+    
+    createMesh() {
+        // 거대한 보스 모습
+        const bodyGeometry = new THREE.SphereGeometry(1.5, 12, 12);
+        const bodyMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x8b0000, // 진한 빨간색
+            emissive: 0xff0000,
+            emissiveIntensity: 0.3
+        });
+        this.mesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        this.mesh.scale.set(1, 1.2, 1);
+        this.mesh.position.copy(this.position);
+        this.mesh.position.y += 1.5;
+        
+        // 눈
+        const eyeGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+        const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        
+        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        leftEye.position.set(-0.5, 0.3, 1.2);
+        this.mesh.add(leftEye);
+        
+        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        rightEye.position.set(0.5, 0.3, 1.2);
+        this.mesh.add(rightEye);
+        
+        this.mesh.castShadow = true;
+        this.mesh.receiveShadow = true;
+        this.scene.add(this.mesh);
+    }
+    
+    takeDamage(amount, isHeadshot = false) {
+        super.takeDamage(amount, isHeadshot);
+        
+        // 페이즈 체크
+        const healthPercent = this.currentHealth / this.maxHealth;
+        if (healthPercent < 0.33 && this.phase === 1) {
+            this.phase = 2;
+            this.speed *= 1.5;
+            this.attackCooldown *= 0.7;
+        } else if (healthPercent < 0.66 && this.phase === 2) {
+            this.phase = 3;
+            this.speed *= 1.3;
+            this.attackCooldown *= 0.8;
+        }
+    }
+}
+
+// Game
+class Game {
+    constructor() {
+        this.scene = null;
+        this.camera = null;
+        this.renderer = null;
+        this.clock = new THREE.Clock();
+        
+        this.player = null;
+        this.weaponManager = null;
+        this.enemyManager = null;
+        this.stageManager = null;
+        this.uiManager = null;
+        this.soundManager = null;
+        this.inputManager = null;
+        this.scoreManager = null;
+        this.particleSystem = null;
+        
+        this.powerUps = [];
+        this.currentWave = 0;
+        this.bossSpawned = false;
+        
+        this.isPaused = false;
+        this.isGameOver = false;
+    }
+    
+    async init() {
+        try {
+            console.log('로딩 화면 표시...');
+            this.showLoadingScreen();
+            
+            console.log('씬 초기화...');
+            this.initScene();
+            
+            console.log('매니저 초기화...');
+            this.inputManager = new InputManager();
+            this.soundManager = new SoundManager();
+            this.uiManager = new UIManager();
+            this.scoreManager = new ScoreManager();
+            this.particleSystem = new ParticleSystem(this.scene);
+            this.stageManager = new StageManager(this.scene);
+            this.player = new PlayerController(this.camera, this.scene);
+            this.weaponManager = new WeaponManager(this.camera, this.scene);
+            this.enemyManager = new EnemyManager(this.scene);
+            
+            console.log('이벤트 연결...');
+            this.setupEventListeners();
+            
+            console.log('스테이지 로드...');
+            await this.stageManager.loadStage('mossyMeadow');
+            
+            // 충돌 가능한 오브젝트 수집 - 약간의 지연 후 (씬이 완전히 로드된 후)
+            setTimeout(() => {
+            const collidableObjects = [];
+            this.scene.traverse((object) => {
+                if (object.isMesh && object !== this.camera && 
+                    (object.geometry.type === 'BoxGeometry' || 
+                     object.geometry.type === 'CylinderGeometry' || 
+                     object.geometry.type === 'ConeGeometry' ||
+                     object.geometry.type === 'DodecahedronGeometry')) {
+                    // 벽과 나무만 충돌 체크 (풀, 꽃, 바닥 제외)
+                    if (object.material && object.material.color && object.geometry.type !== 'PlaneGeometry') {
+                        const color = object.material.color.getHex();
+                        // 나무(갈색), 벽(갈색), 돌(회색)만 충돌
+                        if (color === 0x6b4423 || color === 0x8b4513 || color === 0x757575 || 
+                            (color >= 0x6b0000 && color <= 0x8b8000 && object.geometry.type !== 'PlaneGeometry')) {
+                            // 작은 오브젝트(풀, 꽃)는 제외
+                            const scale = object.scale || {x: 1, y: 1, z: 1};
+                            const size = Math.max(
+                                (object.geometry.parameters?.width || 0) * scale.x,
+                                (object.geometry.parameters?.height || 0) * scale.y,
+                                (object.geometry.parameters?.depth || 0) * scale.z,
+                                (object.geometry.parameters?.radius || 0) * scale.x,
+                                (object.geometry.parameters?.radiusTop || 0) * scale.x
+                            );
+                            if (size > 0.3) { // 나무와 벽 포함
+                                collidableObjects.push(object);
+                            }
+                        }
+                    }
+                }
+            });
+                console.log('Collidable objects:', collidableObjects.length);
+                this.player.setCollidableObjects(collidableObjects);
+            }, 200);
+            
+            // 게임 시작 시 적 자동 스폰
+            this.enemyManager.startWave();
+            
+            // 초기 UI 업데이트
+            this.uiManager.updateHealth(this.player.currentHealth, this.player.maxHealth);
+            this.uiManager.updateAmmo(this.weaponManager.currentWeapon.currentAmmo, this.weaponManager.currentWeapon.maxAmmo);
+            this.uiManager.updateSugarMeter(this.player.sugarMeter, this.player.maxSugarMeter);
+            this.uiManager.updateScore(this.scoreManager.score);
+            
+            console.log('로딩 완료, 메인 메뉴 표시...');
+            this.hideLoadingScreen();
+            this.showMainMenu();
+            
+            console.log('게임 루프 시작...');
+            this.animate();
+        } catch (error) {
+            console.error('게임 초기화 중 오류:', error);
+            this.hideLoadingScreen();
+            alert('게임 초기화 중 오류가 발생했습니다: ' + error.message);
+            // 에러를 다시 throw하여 Promise가 reject되도록 함
+            throw error;
+        }
+    }
+    
+    initScene() {
+        this.scene = new THREE.Scene();
+        this.scene.background = new THREE.Color(0x87CEEB); // 하늘색 (배경만)
+        this.scene.fog = new THREE.Fog(0x87CEEB, 50, 300);
+        
+        this.camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        // 회전 순서를 YXZ로 설정하여 수평/수직 회전 완전히 분리
+        this.camera.rotation.order = 'YXZ';
+        this.camera.position.set(0, 1.6, 5);
+        
+        this.renderer = new THREE.WebGLRenderer({
+            canvas: document.getElementById('gameCanvas'),
+            antialias: true
+        });
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        this.scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 20, 10);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        this.scene.add(directionalLight);
+        
+        window.addEventListener('resize', () => this.onWindowResize());
+    }
+    
+    setupEventListeners() {
+        this.player.onHealthChanged = (current, max) => {
+            this.uiManager.updateHealth(current, max);
+        };
+        
+        this.player.onSugarRushToggle = (active) => {
+            this.uiManager.toggleSugarRushOverlay(active);
+            if (active) {
+                this.soundManager.play('sugarRush');
+            }
+        };
+        
+        this.weaponManager.onAmmoChanged = (current, max) => {
+            this.uiManager.updateAmmo(current, max);
+        };
+        
+        this.weaponManager.onWeaponChanged = (weapon) => {
+            this.uiManager.updateWeaponName(weapon.name);
+        };
+        
+        this.enemyManager.onEnemyKilled = (enemy, isHeadshot = false) => {
+            this.player.addSugar(10);
+            this.uiManager.updateSugarMeter(this.player.sugarMeter, this.player.maxSugarMeter);
+            
+            // 점수 추가
+            const baseScore = enemy.isBoss ? 500 : 100;
+            const scoreResult = this.scoreManager.addScore(baseScore, isHeadshot);
+            this.uiManager.updateScore(this.scoreManager.score);
+            this.uiManager.updateCombo(scoreResult.combo, scoreResult.isHeadshot);
+            
+            // 파티클 효과
+            if (enemy.mesh) {
+                const color = enemy.isBoss ? 0xff0000 : 0xff6b6b;
+                this.particleSystem.createExplosion(enemy.mesh.position, color, enemy.isBoss ? 50 : 20);
+            }
+            
+            // 보스 처치 시 파워업 드롭
+            if (enemy.isBoss) {
+                this.spawnPowerUps(enemy.mesh.position, 3);
+            } else if (Math.random() < 0.2) { // 20% 확률로 파워업 드롭
+                const types = ['health', 'ammo', 'speed', 'damage'];
+                const type = types[Math.floor(Math.random() * types.length)];
+                this.spawnPowerUp(enemy.mesh.position, type);
+            }
+        };
+        
+        this.stageManager.onStageChanged = (stageName) => {
+            this.uiManager.showStageTitle(stageName);
+            this.soundManager.playStageMusic(stageName);
+        };
+        
+        // 적이 플레이어를 찾도록 설정
+        this.enemyManager.setPlayer(this.player);
+        this.weaponManager.setEnemyManager(this.enemyManager);
+        this.weaponManager.setParticleSystem(this.particleSystem);
+        
+        // 웨이브 시작 콜백
+        this.enemyManager.onWaveStart = (wave) => {
+            this.currentWave = wave;
+        };
+        
+        // 웨이브 완료 콜백
+        this.enemyManager.onWaveComplete = () => {
+            this.onWaveComplete();
+        };
+    }
+    
+    animate() {
+        requestAnimationFrame(() => this.animate());
+        
+        if (this.isPaused || this.isGameOver) return;
+        
+        const deltaTime = this.clock.getDelta();
+        
+        this.player.update(deltaTime);
+        this.weaponManager.update(deltaTime);
+        this.enemyManager.update(deltaTime);
+        this.stageManager.update(deltaTime);
+        this.scoreManager.update(deltaTime);
+        this.particleSystem.update(deltaTime);
+        
+        // 파워업 업데이트
+        this.updatePowerUps(deltaTime);
+        
+        // 보스 체력바 업데이트
+        this.updateBossHealth();
+        
+        // 보스 스폰 체크
+        this.checkBossSpawn();
+        
+        this.renderer.render(this.scene, this.camera);
+    }
+    
+    updatePowerUps(deltaTime) {
+        const playerPos = this.player.getPosition();
+        for (let i = this.powerUps.length - 1; i >= 0; i--) {
+            const powerUp = this.powerUps[i];
+            powerUp.update(deltaTime);
+            
+            if (powerUp.checkCollection(playerPos)) {
+                this.applyPowerUp(powerUp.type);
+                this.powerUps.splice(i, 1);
+            }
+        }
+    }
+    
+    applyPowerUp(type) {
+        switch(type) {
+            case 'health':
+                this.player.heal(50);
+                break;
+            case 'ammo':
+                if (this.weaponManager.currentWeapon) {
+                    this.weaponManager.currentWeapon.currentAmmo = this.weaponManager.currentWeapon.maxAmmo;
+                    this.uiManager.updateAmmo(this.weaponManager.currentWeapon.currentAmmo, this.weaponManager.currentWeapon.maxAmmo);
+                }
+                break;
+            case 'speed':
+                this.player.speed *= 1.5;
+                this.player.runSpeed *= 1.5;
+                setTimeout(() => {
+                    this.player.speed /= 1.5;
+                    this.player.runSpeed /= 1.5;
+                }, 10000); // 10초 지속
+                break;
+            case 'damage':
+                if (this.weaponManager.currentWeapon) {
+                    this.weaponManager.currentWeapon.damage *= 2;
+                    setTimeout(() => {
+                        this.weaponManager.currentWeapon.damage /= 2;
+                    }, 10000); // 10초 지속
+                }
+                break;
+        }
+    }
+    
+    spawnPowerUp(position, type) {
+        const powerUp = new PowerUp(this.scene, position, type);
+        this.powerUps.push(powerUp);
+    }
+    
+    spawnPowerUps(position, count) {
+        const types = ['health', 'ammo', 'speed', 'damage'];
+        for (let i = 0; i < count; i++) {
+            const offset = new THREE.Vector3(
+                (Math.random() - 0.5) * 3,
+                0,
+                (Math.random() - 0.5) * 3
+            );
+            const spawnPos = position.clone().add(offset);
+            const type = types[Math.floor(Math.random() * types.length)];
+            this.spawnPowerUp(spawnPos, type);
+        }
+    }
+    
+    updateBossHealth() {
+        const boss = this.enemyManager.enemies.find(e => e.isBoss);
+        if (boss) {
+            this.uiManager.showBossHealth(boss.currentHealth, boss.maxHealth);
+        } else {
+            this.uiManager.hideBossHealth();
+        }
+    }
+    
+    checkBossSpawn() {
+        if (this.bossSpawned) return;
+        
+        // 5웨이브마다 보스 스폰 (적이 모두 처치된 후)
+        if (this.currentWave > 0 && this.currentWave % 5 === 0 && this.enemyManager.enemies.length === 0) {
+            setTimeout(() => {
+                const spawnPoint = this.enemyManager.getRandomSpawnPoint();
+                this.enemyManager.spawnEnemy('boss', spawnPoint, this.player.camera, this.player);
+                this.bossSpawned = true;
+                this.uiManager.showStageTitle('BOSS APPEARED!');
+            }, 2000);
+        }
+    }
+    
+    onWindowResize() {
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    
+    showLoadingScreen() {
+        document.getElementById('loadingScreen').classList.remove('hidden');
+    }
+    
+    hideLoadingScreen() {
+        document.getElementById('loadingScreen').classList.add('hidden');
+    }
+    
+    showMainMenu() {
+        document.getElementById('mainMenu').classList.remove('hidden');
+        document.getElementById('startButton').addEventListener('click', () => {
+            this.startGame();
+        });
+    }
+    
+    startGame() {
+        document.getElementById('mainMenu').classList.add('hidden');
+        document.getElementById('gameCanvas').style.cursor = 'none';
+        
+        // 포인터 잠금 시도
+        const canvas = document.getElementById('gameCanvas');
+        canvas.requestPointerLock = canvas.requestPointerLock || 
+                                   canvas.mozRequestPointerLock || 
+                                   canvas.webkitRequestPointerLock;
+        if (canvas.requestPointerLock) {
+            canvas.requestPointerLock();
+        }
+        
+        // 게임 시작 시 추가 적 스폰
+        setTimeout(() => {
+            this.enemyManager.startWave();
+            this.currentWave = this.enemyManager.currentWave;
+        }, 5000);
+    }
+    
+    pause() {
+        this.isPaused = true;
+    }
+    
+    resume() {
+        this.isPaused = false;
+    }
+    
+    gameOver() {
+        this.isGameOver = true;
+    }
+    
+    onWaveComplete() {
+        this.currentWave = this.enemyManager.currentWave;
+        this.bossSpawned = false; // 보스 처치 후 리셋
+    }
+}
+
+// 메인 초기화
+let game;
+
+window.addEventListener('DOMContentLoaded', async () => {
+    try {
+        console.log('게임 초기화 시작...');
+        game = new Game();
+        try {
+            await game.init();
+        } catch (error) {
+            console.error('게임 초기화 오류:', error);
+            alert('게임 초기화 중 오류가 발생했습니다: ' + (error.message || error));
+        }
+    } catch (error) {
+        console.error('게임 생성 오류:', error);
+        alert('게임 생성 중 오류가 발생했습니다: ' + (error.message || error));
+    }
+});
+    </script>
+</body>
+</html>
+
