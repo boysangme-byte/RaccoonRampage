@@ -362,6 +362,80 @@ body {
         max-width: 300px;
     }
 }
+
+/* 플로팅 데미지 숫자 */
+.floating-damage {
+    position: absolute;
+    font-size: 24px;
+    font-weight: bold;
+    color: #ff0000;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+    z-index: 1001;
+    animation: floatUp 1s ease-out forwards;
+}
+
+.floating-damage.headshot {
+    color: #ffd700;
+    font-size: 32px;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+}
+
+@keyframes floatUp {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-100px) scale(1.5);
+    }
+}
+
+/* 히트 마커 애니메이션 */
+#hitMarker {
+    animation: hitMarkerPulse 0.2s ease-out;
+}
+
+@keyframes hitMarkerPulse {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.5);
+    }
+}
+
+/* 카메라 쉐이크 효과 */
+.shake {
+    animation: shake 0.3s;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0) translateY(0); }
+    10% { transform: translateX(-2px) translateY(-1px); }
+    20% { transform: translateX(2px) translateY(1px); }
+    30% { transform: translateX(-1px) translateY(2px); }
+    40% { transform: translateX(1px) translateY(-2px); }
+    50% { transform: translateX(-2px) translateY(1px); }
+    60% { transform: translateX(2px) translateY(-1px); }
+    70% { transform: translateX(-1px) translateY(-2px); }
+    80% { transform: translateX(1px) translateY(2px); }
+    90% { transform: translateX(-2px) translateY(-1px); }
+}
+
+/* 콤보 효과 */
+.combo-effect {
+    animation: comboPulse 0.5s ease-out;
+}
+
+@keyframes comboPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -427,6 +501,29 @@ body {
             <div id="dialogueBox" class="hidden">
                 <div id="dialogueText"></div>
                 <div id="dialogueContinue">Press SPACE to continue</div>
+            </div>
+            
+            <!-- 플로팅 데미지 숫자 컨테이너 -->
+            <div id="floatingDamageContainer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000;"></div>
+            
+            <!-- 히트 마커 -->
+            <div id="hitMarker" class="hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; pointer-events: none; z-index: 999;">
+                <div style="position: absolute; width: 100%; height: 2px; background: #ff0000; top: 50%; left: 0; transform: translateY(-50%);"></div>
+                <div style="position: absolute; height: 100%; width: 2px; background: #ff0000; left: 50%; top: 0; transform: translateX(-50%);"></div>
+            </div>
+            
+            <!-- 미니맵 -->
+            <div id="minimap" style="position: absolute; top: 20px; left: 20px; width: 200px; height: 200px; background: rgba(0, 0, 0, 0.6); border: 3px solid #fff; border-radius: 10px; z-index: 100;">
+                <canvas id="minimapCanvas" width="200" height="200" style="border-radius: 7px;"></canvas>
+            </div>
+            
+            <!-- 웨이브 간 상점 -->
+            <div id="shopMenu" class="hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.9); border: 5px solid #fff; border-radius: 20px; padding: 30px; z-index: 10000; min-width: 500px;">
+                <h2 style="text-align: center; margin-bottom: 20px; font-size: 32px; color: #ffd700;">상점</h2>
+                <div id="shopItems" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    <!-- 상점 아이템들은 JavaScript로 동적 생성 -->
+                </div>
+                <button id="closeShop" style="margin-top: 20px; width: 100%; padding: 15px; font-size: 20px; background: #ff6b6b; color: white; border: none; border-radius: 10px; cursor: pointer;">닫기</button>
             </div>
         </div>
         
@@ -660,6 +757,11 @@ class AcornBlaster extends WeaponBase {
         direction.applyAxisAngle(new THREE.Vector3(1, 0, 0), spreadY);
         
         this.createBullet(this.camera.position.clone(), direction);
+        
+        // 발사 시 카메라 쉐이크 (약간)
+        if (window.game && window.game.cameraShakeSystem) {
+            window.game.cameraShakeSystem.shake(0.02, 0.1);
+        }
     }
     
     createBullet(position, direction) {
@@ -717,7 +819,27 @@ class AcornBlaster extends WeaponBase {
                     const headHeight = enemy.mesh.position.y + (enemy.mesh.scale.y || 1) * 0.5;
                     const isHeadshot = bullet.mesh.position.y > headHeight - 0.3;
                     
-                    enemy.takeDamage(bullet.damage, isHeadshot);
+                    const damageDealt = enemy.takeDamage(bullet.damage, isHeadshot);
+                    
+                    // 플로팅 데미지 표시
+                    if (window.game && window.game.floatingDamageSystem && window.game.camera) {
+                        window.game.floatingDamageSystem.showDamage(
+                            enemy.mesh.position.clone().add(new THREE.Vector3(0, 1, 0)),
+                            window.game.camera,
+                            damageDealt,
+                            isHeadshot
+                        );
+                    }
+                    
+                    // 히트 마커 표시
+                    if (window.game && window.game.hitMarkerSystem) {
+                        window.game.hitMarkerSystem.show(isHeadshot);
+                    }
+                    
+                    // 카메라 쉐이크 (약간)
+                    if (window.game && window.game.cameraShakeSystem) {
+                        window.game.cameraShakeSystem.shake(0.05, 0.1);
+                    }
                     
                     // 충돌 스파크 효과
                     if (this.particleSystem) {
@@ -852,25 +974,83 @@ class EnemyBase {
         this.type = type;
         this.position = position.clone();
         
+        // 기본값 (타입별로 덮어씀)
         this.maxHealth = 20;
         this.currentHealth = this.maxHealth;
         this.speed = 3;
         
         // 적 타입에 따라 다른 설정
-        if (type === 'ranged') {
+        if (type === 'bunny') {
+            // 근접 공격 적 (토끼)
+            this.attackType = 'melee';
+            this.attackRange = 2;
+            this.attackDamage = 10;
+            this.attackCooldown = 1.5;
+            this.maxHealth = 20;
+            this.speed = 5;
+            this.resourceValue = 15;
+        } else if (type === 'ranged') {
             // 원거리 공격 적
             this.attackType = 'ranged';
             this.attackRange = 15;
             this.attackDamage = 5;
             this.attackCooldown = 2;
             this.projectileSpeed = 10;
+            this.maxHealth = 20;
+            this.speed = 5; // 속도 증가
+            this.resourceValue = 15;
+        } else if (type === 'tank') {
+            // 탱크형 적 - 느리지만 강함
+            this.attackType = 'melee';
+            this.attackRange = 2.5;
+            this.attackDamage = 15;
+            this.attackCooldown = 1.2;
+            this.maxHealth = 50;
+            this.speed = 2.5; // 속도 증가
+            this.resourceValue = 30;
+        } else if (type === 'fast') {
+            // 빠른 적 - 빠르지만 약함
+            this.attackType = 'melee';
+            this.attackRange = 1.5;
+            this.attackDamage = 5;
+            this.attackCooldown = 0.8;
+            this.maxHealth = 10;
+            this.speed = 8; // 속도 증가
+            this.resourceValue = 10;
+        } else if (type === 'flyer') {
+            // 비행 적 - 빠르고 공중 이동
+            this.attackType = 'ranged';
+            this.attackRange = 12;
+            this.attackDamage = 8;
+            this.attackCooldown = 1.5;
+            this.projectileSpeed = 12;
+            this.maxHealth = 15;
+            this.speed = 7;
+            this.isFlying = true;
+            this.resourceValue = 20;
+        } else if (type === 'charger') {
+            // 돌진형 적 - 매우 빠르고 강함
+            this.attackType = 'melee';
+            this.attackRange = 2;
+            this.attackDamage = 20;
+            this.attackCooldown = 2;
+            this.maxHealth = 30;
+            this.speed = 10;
+            this.chargeCooldown = 3;
+            this.lastChargeTime = 0;
+            this.resourceValue = 25;
         } else {
-            // 근접 공격 적
+            // 근접 공격 적 (기본)
             this.attackType = 'melee';
             this.attackRange = 2;
             this.attackDamage = 10;
             this.attackCooldown = 1.5;
+            this.maxHealth = 20;
+            this.speed = 5; // 속도 증가
+            this.resourceValue = 15;
         }
+        
+        this.currentHealth = this.maxHealth;
         
         this.attackTimer = 0;
         this.staggerThreshold = 3;
@@ -879,8 +1059,11 @@ class EnemyBase {
         
         this.isDead = false;
         this.target = player;
+        this.towerTarget = null; // 타워 타겟 (디펜스 게임용)
         this.playerController = null; // 플레이어 컨트롤러 참조
         this.enemyManager = null; // EnemyManager 참조
+        this.resourceValue = 10; // 처치 시 리소스
+        this.isFlying = false; // 비행 여부
         
         this.onDeath = null;
         
@@ -896,8 +1079,167 @@ class EnemyBase {
     }
     
     createMesh() {
-        // 적 타입에 따라 다른 모습
-        if (this.attackType === 'ranged') {
+        // 적 타입에 따라 다른 모습 (타입 우선 체크)
+        if (this.type === 'tank') {
+            // 탱크형 적 - 크고 강함
+            const bodyGeometry = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x4a4a4a, // 회색
+                roughness: 0.7,
+                metalness: 0.3
+            });
+            this.mesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y += 0.6;
+            
+            // 갑옷 플레이트
+            const plateGeometry = new THREE.BoxGeometry(1.4, 0.2, 1.4);
+            const plateMaterial = new THREE.MeshStandardMaterial({ color: 0x2c2c2c });
+            const topPlate = new THREE.Mesh(plateGeometry, plateMaterial);
+            topPlate.position.set(0, 0.7, 0);
+            this.mesh.add(topPlate);
+            
+            // 눈 (빨간색으로 위협적)
+            const eyeGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+            const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, emissive: 0xff0000 });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.3, 0.3, 0.6);
+            this.mesh.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.3, 0.3, 0.6);
+            this.mesh.add(rightEye);
+            
+        } else if (this.type === 'fast') {
+            // 빠른 적 - 작고 빠름
+            const bodyGeometry = new THREE.SphereGeometry(0.4, 8, 8);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x00ff00, // 초록색
+                roughness: 0.8,
+                emissive: 0x00ff00,
+                emissiveIntensity: 0.3
+            });
+            this.mesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            this.mesh.scale.set(1, 1.3, 0.7);
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y += 0.4;
+            
+            // 긴 귀
+            const earGeometry = new THREE.ConeGeometry(0.1, 0.5, 6);
+            const earMaterial = new THREE.MeshStandardMaterial({ color: 0x00cc00 });
+            
+            const leftEar = new THREE.Mesh(earGeometry, earMaterial);
+            leftEar.position.set(-0.3, 0.5, 0);
+            leftEar.rotation.z = -0.3;
+            this.mesh.add(leftEar);
+            
+            const rightEar = new THREE.Mesh(earGeometry, earMaterial);
+            rightEar.position.set(0.3, 0.5, 0);
+            rightEar.rotation.z = 0.3;
+            this.mesh.add(rightEar);
+            
+            // 눈
+            const eyeGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+            const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.15, 0.1, 0.3);
+            this.mesh.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.15, 0.1, 0.3);
+            this.mesh.add(rightEye);
+            
+        } else if (this.type === 'flyer') {
+            // 비행 적 - 새 모습
+            const bodyGeometry = new THREE.SphereGeometry(0.5, 8, 8);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x4169E1, // 파란색
+                roughness: 0.8,
+                emissive: 0x4169E1,
+                emissiveIntensity: 0.2
+            });
+            this.mesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            this.mesh.scale.set(1, 1.1, 0.9);
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y += 2; // 공중
+            
+            // 날개 (더 크게)
+            const wingGeometry = new THREE.BoxGeometry(0.5, 0.15, 1.2);
+            const wingMaterial = new THREE.MeshStandardMaterial({ color: 0x1E90FF });
+            
+            const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+            leftWing.position.set(-0.6, 0.2, 0);
+            leftWing.rotation.z = 0.5;
+            this.mesh.add(leftWing);
+            
+            const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
+            rightWing.position.set(0.6, 0.2, 0);
+            rightWing.rotation.z = -0.5;
+            this.mesh.add(rightWing);
+            
+            // 부리
+            const beakGeometry = new THREE.ConeGeometry(0.15, 0.4, 6);
+            const beakMaterial = new THREE.MeshStandardMaterial({ color: 0xffa502 });
+            const beak = new THREE.Mesh(beakGeometry, beakMaterial);
+            beak.position.set(0, 0, 0.6);
+            beak.rotation.x = Math.PI / 2;
+            this.mesh.add(beak);
+            
+            // 눈
+            const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+            const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.2, 0.2, 0.5);
+            this.mesh.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.2, 0.2, 0.5);
+            this.mesh.add(rightEye);
+            
+        } else if (this.type === 'charger') {
+            // 돌진형 적 - 뿔 있는 동물
+            const bodyGeometry = new THREE.SphereGeometry(0.7, 8, 8);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x8B0000, // 진한 빨간색
+                roughness: 0.9,
+                emissive: 0xff0000,
+                emissiveIntensity: 0.2
+            });
+            this.mesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            this.mesh.scale.set(1, 1.2, 1.1);
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y += 0.7;
+            
+            // 뿔
+            const hornGeometry = new THREE.ConeGeometry(0.1, 0.6, 6);
+            const hornMaterial = new THREE.MeshStandardMaterial({ color: 0x2c2c2c });
+            
+            const leftHorn = new THREE.Mesh(hornGeometry, hornMaterial);
+            leftHorn.position.set(-0.3, 0.6, 0.5);
+            leftHorn.rotation.z = -0.3;
+            this.mesh.add(leftHorn);
+            
+            const rightHorn = new THREE.Mesh(hornGeometry, hornMaterial);
+            rightHorn.position.set(0.3, 0.6, 0.5);
+            rightHorn.rotation.z = 0.3;
+            this.mesh.add(rightHorn);
+            
+            // 눈 (빨간색)
+            const eyeGeometry = new THREE.SphereGeometry(0.12, 8, 8);
+            const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, emissive: 0xff0000 });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.25, 0.2, 0.7);
+            this.mesh.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.25, 0.2, 0.7);
+            this.mesh.add(rightEye);
+            
+        } else if (this.type === 'ranged' || this.attackType === 'ranged') {
             // 원거리 공격 적 - 새 모습
             const bodyGeometry = new THREE.SphereGeometry(0.5, 8, 8);
             const bodyMaterial = new THREE.MeshStandardMaterial({ 
@@ -991,6 +1333,94 @@ class EnemyBase {
             rightClaw.position.set(0.4, -0.5, 0.5);
             this.mesh.add(rightClaw);
             
+        } else if (this.type === 'flyer') {
+            // 비행 적 - 새 모습
+            const bodyGeometry = new THREE.SphereGeometry(0.5, 8, 8);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x4169E1, // 파란색
+                roughness: 0.8,
+                emissive: 0x4169E1,
+                emissiveIntensity: 0.2
+            });
+            this.mesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            this.mesh.scale.set(1, 1.1, 0.9);
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y += 2; // 공중
+            
+            // 날개 (더 크게)
+            const wingGeometry = new THREE.BoxGeometry(0.5, 0.15, 1.2);
+            const wingMaterial = new THREE.MeshStandardMaterial({ color: 0x1E90FF });
+            
+            const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+            leftWing.position.set(-0.6, 0.2, 0);
+            leftWing.rotation.z = 0.5;
+            this.mesh.add(leftWing);
+            
+            const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
+            rightWing.position.set(0.6, 0.2, 0);
+            rightWing.rotation.z = -0.5;
+            this.mesh.add(rightWing);
+            
+            // 부리
+            const beakGeometry = new THREE.ConeGeometry(0.15, 0.4, 6);
+            const beakMaterial = new THREE.MeshStandardMaterial({ color: 0xffa502 });
+            const beak = new THREE.Mesh(beakGeometry, beakMaterial);
+            beak.position.set(0, 0, 0.6);
+            beak.rotation.x = Math.PI / 2;
+            this.mesh.add(beak);
+            
+            // 눈
+            const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+            const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.2, 0.2, 0.5);
+            this.mesh.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.2, 0.2, 0.5);
+            this.mesh.add(rightEye);
+            
+        } else if (this.type === 'charger') {
+            // 돌진형 적 - 뿔 있는 동물
+            const bodyGeometry = new THREE.SphereGeometry(0.7, 8, 8);
+            const bodyMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x8B0000, // 진한 빨간색
+                roughness: 0.9,
+                emissive: 0xff0000,
+                emissiveIntensity: 0.2
+            });
+            this.mesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            this.mesh.scale.set(1, 1.2, 1.1);
+            this.mesh.position.copy(this.position);
+            this.mesh.position.y += 0.7;
+            
+            // 뿔
+            const hornGeometry = new THREE.ConeGeometry(0.1, 0.6, 6);
+            const hornMaterial = new THREE.MeshStandardMaterial({ color: 0x2c2c2c });
+            
+            const leftHorn = new THREE.Mesh(hornGeometry, hornMaterial);
+            leftHorn.position.set(-0.3, 0.6, 0.5);
+            leftHorn.rotation.z = -0.3;
+            this.mesh.add(leftHorn);
+            
+            const rightHorn = new THREE.Mesh(hornGeometry, hornMaterial);
+            rightHorn.position.set(0.3, 0.6, 0.5);
+            rightHorn.rotation.z = 0.3;
+            this.mesh.add(rightHorn);
+            
+            // 눈 (빨간색)
+            const eyeGeometry = new THREE.SphereGeometry(0.12, 8, 8);
+            const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, emissive: 0xff0000 });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.25, 0.2, 0.7);
+            this.mesh.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.25, 0.2, 0.7);
+            this.mesh.add(rightEye);
+            
         } else if (this.type === 'bear') {
             // 곰 모습
             const bodyGeometry = new THREE.SphereGeometry(0.8, 8, 8);
@@ -1048,43 +1478,102 @@ class EnemyBase {
     update(deltaTime) {
         if (this.isDead) return;
         
-        if (this.target) {
+        // 공격 타이머 감소
+        if (this.attackTimer > 0) {
+            this.attackTimer -= deltaTime;
+        }
+        
+        if (this.target || this.towerTarget) {
             this.moveTowardsTarget(deltaTime);
-            this.checkAttack();
+            if (!this.towerTarget) {
+                this.checkAttack();
+            }
         }
     }
     
     moveTowardsTarget(deltaTime) {
-        if (!this.target) return;
+        // 타워 타겟 우선 (디펜스 게임)
+        let targetPos = null;
+        if (this.towerTarget) {
+            targetPos = this.towerTarget.getPosition();
+        } else if (this.target) {
+            targetPos = this.target.position || this.target;
+        }
         
-        const targetPos = this.target.position || this.target;
+        if (!targetPos) return;
+        
         const distance = this.position.distanceTo(targetPos);
         
-        // 원거리 적은 일정 거리 유지
-        if (this.attackType === 'ranged' && distance < this.attackRange * 0.8) {
-            // 너무 가까우면 뒤로 이동
+        // 타워에 도달하면 타워 공격
+        if (this.towerTarget && distance < this.attackRange) {
+            // 공격 타이머는 update()에서 이미 감소됨
+            if (this.attackTimer <= 0) {
+                this.towerTarget.takeDamage(this.attackDamage);
+                this.attackTimer = this.attackCooldown;
+            }
+            if (this.mesh) {
+                this.mesh.position.copy(this.position);
+                if (this.isFlying) {
+                    this.mesh.position.y = this.position.y + 2;
+                }
+                this.mesh.lookAt(targetPos);
+            }
+            return;
+        }
+        
+        // 타워를 향해 이동하거나 근접 적이면 다가가기
+        if (this.towerTarget || this.attackType === 'melee' || distance > this.attackRange) {
+            const direction = new THREE.Vector3()
+                .subVectors(targetPos, this.position)
+                .normalize();
+            
+            // charger 타입은 돌진
+            let moveSpeed = this.speed;
+            if (this.type === 'charger') {
+                const now = Date.now();
+                if (now - (this.lastChargeTime || 0) > (this.chargeCooldown || 3) * 1000) {
+                    moveSpeed *= 2; // 돌진 모드
+                    this.lastChargeTime = now;
+                }
+            }
+            
+            const speed = this.isStaggered ? moveSpeed * 0.5 : moveSpeed;
+            this.position.add(direction.multiplyScalar(speed * deltaTime));
+        } else if (this.attackType === 'ranged' && distance < this.attackRange * 0.8 && !this.towerTarget) {
+            // 원거리 적이 플레이어와 너무 가까우면 뒤로 이동 (타워 아닐 때만)
             const direction = new THREE.Vector3()
                 .subVectors(this.position, targetPos)
                 .normalize();
             this.position.add(direction.multiplyScalar(this.speed * deltaTime * 0.5));
-        } else if (this.attackType === 'melee' || distance > this.attackRange) {
-            // 근접 적이거나 멀리 있으면 다가가기
-            const direction = new THREE.Vector3()
-                .subVectors(targetPos, this.position)
-                .normalize();
-            const speed = this.isStaggered ? this.speed * 0.5 : this.speed;
-            this.position.add(direction.multiplyScalar(speed * deltaTime));
         }
         
-        this.mesh.position.copy(this.position);
-        this.mesh.lookAt(targetPos);
+        if (this.mesh) {
+            this.mesh.position.copy(this.position);
+            if (this.isFlying) {
+                this.mesh.position.y = this.position.y + 2; // 공중 이동
+            }
+            this.mesh.lookAt(targetPos);
+        }
+    }
+    
+    attackTower(deltaTime) {
+        if (!this.towerTarget || this.towerTarget.isDestroyed) return;
+        
+        // 공격 타이머 체크 (update에서 이미 감소시킴)
+        if (this.attackTimer <= 0) {
+            this.towerTarget.takeDamage(this.attackDamage);
+            this.attackTimer = this.attackCooldown;
+        }
+    }
+    
+    setTowerTarget(tower) {
+        this.towerTarget = tower;
     }
     
     checkAttack() {
         if (!this.target || !this.playerController) return;
         
-        this.attackTimer -= 0.016; // 약 60fps 기준
-        
+        // 공격 타이머는 update()에서 이미 감소됨
         const targetPos = this.target.position || this.target;
         const distance = this.position.distanceTo(targetPos);
         
@@ -1093,7 +1582,6 @@ class EnemyBase {
                 // 근접 공격
                 this.playerController.takeDamage(this.attackDamage);
                 this.attackTimer = this.attackCooldown;
-                console.log('Melee attack!', this.attackDamage);
             } else if (this.attackType === 'ranged') {
                 // 원거리 공격 - 투사체 발사
                 if (this.enemyManager) {
@@ -1137,10 +1625,11 @@ class EnemyBase {
     }
     
     takeDamage(amount, isHeadshot = false) {
-        if (this.isDead) return;
+        if (this.isDead) return 0;
         
         this.lastHitWasHeadshot = isHeadshot;
         
+        const originalAmount = amount;
         if (isHeadshot) {
             amount *= 2;
         }
@@ -1155,6 +1644,8 @@ class EnemyBase {
         if (this.currentHealth <= 0) {
             this.die();
         }
+        
+        return amount; // 실제 데미지 반환
     }
     
     stagger() {
@@ -1203,14 +1694,38 @@ class EnemyManager {
         this.onEnemyKilled = null;
         this.onWaveComplete = null;
         this.onWaveStart = null;
+        
+        this.waveCompleteChecked = false; // 웨이브 완료 체크 플래그
     }
     
     update(deltaTime) {
+        // 적 업데이트
         this.enemies.forEach(enemy => {
             if (enemy && enemy.update) {
                 enemy.update(deltaTime);
             }
         });
+        
+        // 죽은 적 제거
+        this.enemies = this.enemies.filter(enemy => !enemy.isDead);
+        
+        // 웨이브 완료 체크 (적이 모두 처치되고 웨이브가 진행 중일 때, 한 번만)
+        if (this.currentWave > 0 && this.enemies.length === 0 && this.onWaveComplete && !this.waveCompleteChecked) {
+            this.waveCompleteChecked = true;
+            // 약간의 지연 후 웨이브 완료 콜백
+            setTimeout(() => {
+                if (this.onWaveComplete && this.enemies.length === 0) {
+                    this.onWaveComplete();
+                }
+                // 자동으로 다음 웨이브 시작 (3초 후)
+                setTimeout(() => {
+                    this.waveCompleteChecked = false;
+                    if (this.enemies.length === 0) {
+                        this.startWave();
+                    }
+                }, 3000);
+            }, 1000);
+        }
         
         // 투사체 업데이트 (역순으로 순회하여 안전하게 제거)
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
@@ -1297,8 +1812,22 @@ class EnemyManager {
         
         for (let i = 0; i < waveSize; i++) {
             const spawnPoint = this.getRandomSpawnPoint();
-            // 근접/원거리 적 랜덤 생성
-            const enemyType = Math.random() > 0.5 ? 'bunny' : 'ranged';
+            // 다양한 적 타입 랜덤 생성 (디펜스 게임용)
+            const rand = Math.random();
+            let enemyType;
+            if (rand < 0.3) {
+                enemyType = 'bunny'; // 근접 공격 (30%)
+            } else if (rand < 0.5) {
+                enemyType = 'ranged'; // 원거리 공격 (20%)
+            } else if (rand < 0.65) {
+                enemyType = 'fast'; // 빠른 적 (15%)
+            } else if (rand < 0.8) {
+                enemyType = 'tank'; // 탱크형 적 (15%)
+            } else if (rand < 0.9) {
+                enemyType = 'flyer'; // 비행 적 (10%)
+            } else {
+                enemyType = 'charger'; // 돌진형 적 (10%)
+            }
             this.spawnEnemy(
                 enemyType, 
                 spawnPoint, 
@@ -1311,6 +1840,9 @@ class EnemyManager {
         if (this.onWaveStart) {
             this.onWaveStart(this.currentWave);
         }
+        
+        // 보스 스폰 체크는 Game 클래스에서 처리
+        // 웨이브 완료 체크는 update()에서 처리
     }
     
     getRandomSpawnPoint() {
@@ -1434,11 +1966,22 @@ class StageManager {
         
         this.createWalls(mapSize/2, 25, 0x6b4423);
         
+        // 중앙 구조물은 Game 클래스에서 타워로 생성됨 (제거)
+        // this.createCentralStructure(0, 0, 15);
+        
         // 나무들 - 더 자연스럽게 배치
         for (let i = 0; i < 80; i++) {
             this.createTree(
                 (Math.random() - 0.5) * (mapSize - 20),
                 (Math.random() - 0.5) * (mapSize - 20)
+            );
+        }
+        
+        // 장애물 구조물들
+        for (let i = 0; i < 15; i++) {
+            this.createObstacleStructure(
+                (Math.random() - 0.5) * (mapSize - 40),
+                (Math.random() - 0.5) * (mapSize - 40)
             );
         }
         
@@ -1464,6 +2007,70 @@ class StageManager {
                 (Math.random() - 0.5) * (mapSize - 20),
                 (Math.random() - 0.5) * (mapSize - 20)
             );
+        }
+    }
+    
+    createCentralStructure(x, z, size) {
+        // 중앙 타워
+        const towerGeometry = new THREE.CylinderGeometry(size * 0.3, size * 0.4, size * 0.8, 8);
+        const towerMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x8b4513,
+            roughness: 0.9
+        });
+        const tower = new THREE.Mesh(towerGeometry, towerMaterial);
+        tower.position.set(x, size * 0.4, z);
+        tower.castShadow = true;
+        tower.receiveShadow = true;
+        this.scene.add(tower);
+        
+        // 주변 벽
+        const wallHeight = size * 0.3;
+        const wallThickness = 1;
+        const wallLength = size * 0.6;
+        
+        const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x6b4423 });
+        const walls = [
+            { pos: [x - wallLength/2, wallHeight/2, z], size: [wallThickness, wallHeight, wallLength] },
+            { pos: [x + wallLength/2, wallHeight/2, z], size: [wallThickness, wallHeight, wallLength] },
+            { pos: [x, wallHeight/2, z - wallLength/2], size: [wallLength, wallHeight, wallThickness] },
+            { pos: [x, wallHeight/2, z + wallLength/2], size: [wallLength, wallHeight, wallThickness] }
+        ];
+        
+        walls.forEach(wall => {
+            const geometry = new THREE.BoxGeometry(...wall.size);
+            const mesh = new THREE.Mesh(geometry, wallMaterial);
+            mesh.position.set(...wall.pos);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            this.scene.add(mesh);
+        });
+    }
+    
+    createObstacleStructure(x, z) {
+        // 다양한 높이의 장애물
+        const height = 2 + Math.random() * 3;
+        const width = 1 + Math.random() * 2;
+        const depth = 1 + Math.random() * 2;
+        
+        const geometry = new THREE.BoxGeometry(width, height, depth);
+        const material = new THREE.MeshStandardMaterial({ 
+            color: new THREE.Color().setHSL(0.1, 0.3, 0.3 + Math.random() * 0.2),
+            roughness: 0.8
+        });
+        const obstacle = new THREE.Mesh(geometry, material);
+        obstacle.position.set(x, height / 2, z);
+        obstacle.rotation.y = Math.random() * Math.PI * 2;
+        obstacle.castShadow = true;
+        obstacle.receiveShadow = true;
+        this.scene.add(obstacle);
+        
+        // 위에 작은 장식
+        if (Math.random() > 0.5) {
+            const decorationGeometry = new THREE.SphereGeometry(0.3, 6, 6);
+            const decorationMaterial = new THREE.MeshStandardMaterial({ color: 0xff6b6b });
+            const decoration = new THREE.Mesh(decorationGeometry, decorationMaterial);
+            decoration.position.set(x, height + 0.3, z);
+            this.scene.add(decoration);
         }
     }
     
@@ -1708,6 +2315,361 @@ class StageManager {
     }
 }
 
+// FloatingDamageSystem - 플로팅 데미지 숫자
+class FloatingDamageSystem {
+    constructor() {
+        this.container = document.getElementById('floatingDamageContainer');
+        this.damageElements = [];
+    }
+    
+    showDamage(worldPosition, camera, damage, isHeadshot = false) {
+        // 3D 월드 좌표를 2D 화면 좌표로 변환
+        const vector = worldPosition.clone();
+        vector.project(camera);
+        
+        const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-vector.y * 0.5 + 0.5) * window.innerHeight;
+        
+        // 데미지 요소 생성
+        const damageElement = document.createElement('div');
+        damageElement.className = 'floating-damage' + (isHeadshot ? ' headshot' : '');
+        damageElement.textContent = '-' + Math.round(damage);
+        damageElement.style.left = x + 'px';
+        damageElement.style.top = y + 'px';
+        damageElement.style.transform = 'translate(-50%, -50%)';
+        
+        // 랜덤 오프셋 추가
+        const offsetX = (Math.random() - 0.5) * 50;
+        damageElement.style.left = (x + offsetX) + 'px';
+        
+        this.container.appendChild(damageElement);
+        this.damageElements.push(damageElement);
+        
+        // 1초 후 제거
+        setTimeout(() => {
+            if (damageElement.parentNode) {
+                damageElement.parentNode.removeChild(damageElement);
+            }
+            const index = this.damageElements.indexOf(damageElement);
+            if (index > -1) {
+                this.damageElements.splice(index, 1);
+            }
+        }, 1000);
+    }
+}
+
+// CameraShakeSystem - 카메라 쉐이크
+class CameraShakeSystem {
+    constructor(camera) {
+        this.camera = camera;
+        this.originalPosition = camera.position.clone();
+        this.shakeIntensity = 0;
+        this.shakeDecay = 0.9;
+        this.isShaking = false;
+    }
+    
+    shake(intensity = 0.1, duration = 0.3) {
+        this.shakeIntensity = intensity;
+        this.isShaking = true;
+        
+        setTimeout(() => {
+            this.isShaking = false;
+            this.shakeIntensity = 0;
+        }, duration * 1000);
+    }
+    
+    update(deltaTime) {
+        if (this.isShaking && this.shakeIntensity > 0) {
+            const offsetX = (Math.random() - 0.5) * this.shakeIntensity;
+            const offsetY = (Math.random() - 0.5) * this.shakeIntensity;
+            const offsetZ = (Math.random() - 0.5) * this.shakeIntensity;
+            
+            this.camera.position.x = this.originalPosition.x + offsetX;
+            this.camera.position.y = this.originalPosition.y + offsetY;
+            this.camera.position.z = this.originalPosition.z + offsetZ;
+            
+            this.shakeIntensity *= this.shakeDecay;
+        } else {
+            this.originalPosition.copy(this.camera.position);
+        }
+    }
+}
+
+// HitMarkerSystem - 히트 마커
+class HitMarkerSystem {
+    constructor() {
+        this.marker = document.getElementById('hitMarker');
+        this.isShowing = false;
+    }
+    
+    show(isHeadshot = false) {
+        if (this.isShowing) return;
+        
+        this.isShowing = true;
+        this.marker.classList.remove('hidden');
+        this.marker.style.opacity = '1';
+        
+        // 헤드샷 시 더 크게 표시
+        if (isHeadshot) {
+            this.marker.style.width = '60px';
+            this.marker.style.height = '60px';
+            this.marker.querySelector('div').style.background = '#ffd700';
+            this.marker.querySelectorAll('div')[1].style.background = '#ffd700';
+        } else {
+            this.marker.style.width = '40px';
+            this.marker.style.height = '40px';
+            this.marker.querySelector('div').style.background = '#ff0000';
+            this.marker.querySelectorAll('div')[1].style.background = '#ff0000';
+        }
+        
+        setTimeout(() => {
+            this.marker.classList.add('hidden');
+            this.isShowing = false;
+        }, 200);
+    }
+}
+
+// MinimapSystem - 미니맵
+class MinimapSystem {
+    constructor(scene, camera, tower, enemies) {
+        this.scene = scene;
+        this.camera = camera;
+        this.tower = tower;
+        this.enemies = enemies;
+        this.canvas = document.getElementById('minimapCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.mapSize = 200; // 맵 크기 (게임 월드 기준)
+        this.minimapSize = 200; // 미니맵 픽셀 크기
+    }
+    
+    update() {
+        // 캔버스 클리어
+        this.ctx.clearRect(0, 0, this.minimapSize, this.minimapSize);
+        
+        // 배경
+        this.ctx.fillStyle = 'rgba(50, 50, 50, 0.8)';
+        this.ctx.fillRect(0, 0, this.minimapSize, this.minimapSize);
+        
+        // 맵 중심점
+        const centerX = this.minimapSize / 2;
+        const centerY = this.minimapSize / 2;
+        const scale = this.minimapSize / this.mapSize;
+        
+        // 타워 표시 (중앙, 빨간색)
+        if (this.tower) {
+            const towerPos = this.tower.getPosition();
+            const towerX = centerX + towerPos.x * scale;
+            const towerY = centerY + towerPos.z * scale;
+            this.ctx.fillStyle = '#ff0000';
+            this.ctx.beginPath();
+            this.ctx.arc(towerX, towerY, 5, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        
+        // 플레이어 표시 (파란색)
+        const playerX = centerX + this.camera.position.x * scale;
+        const playerY = centerY + this.camera.position.z * scale;
+        this.ctx.fillStyle = '#00ff00';
+        this.ctx.beginPath();
+        this.ctx.arc(playerX, playerY, 4, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // 플레이어 방향 표시
+        const direction = new THREE.Vector3();
+        this.camera.getWorldDirection(direction);
+        this.ctx.strokeStyle = '#00ff00';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(playerX, playerY);
+        this.ctx.lineTo(playerX + direction.x * 10, playerY + direction.z * 10);
+        this.ctx.stroke();
+        
+        // 적 표시 (노란색)
+        if (this.enemies) {
+            this.enemies.forEach(enemy => {
+                if (!enemy.isDead && enemy.position) {
+                    const enemyX = centerX + enemy.position.x * scale;
+                    const enemyY = centerY + enemy.position.z * scale;
+                    this.ctx.fillStyle = '#ffff00';
+                    this.ctx.beginPath();
+                    this.ctx.arc(enemyX, enemyY, 3, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+            });
+        }
+    }
+}
+
+// ShopSystem - 상점 시스템
+class ShopSystem {
+    constructor(game) {
+        this.game = game;
+        this.shopMenu = document.getElementById('shopMenu');
+        this.shopItems = document.getElementById('shopItems');
+        this.closeShopBtn = document.getElementById('closeShop');
+        
+        this.items = [
+            { id: 'damage', name: '데미지 업그레이드', price: 200, effect: () => this.upgradeDamage() },
+            { id: 'fireRate', name: '발사 속도 업그레이드', price: 200, effect: () => this.upgradeFireRate() },
+            { id: 'ammo', name: '탄약 업그레이드', price: 150, effect: () => this.upgradeAmmo() },
+            { id: 'health', name: '체력 회복', price: 100, effect: () => this.healPlayer() },
+            { id: 'speed', name: '이동 속도 업그레이드', price: 250, effect: () => this.upgradeSpeed() },
+            { id: 'towerHeal', name: '타워 체력 회복', price: 300, effect: () => this.healTower() },
+            { id: 'turret_basic', name: '기본 도토리 포탑', price: 150, effect: () => this.buyTurret('basic') },
+            { id: 'turret_rapid', name: '빠른 도토리 포탑', price: 200, effect: () => this.buyTurret('rapid') },
+            { id: 'turret_heavy', name: '강력한 도토리 포탑', price: 300, effect: () => this.buyTurret('heavy') },
+            { id: 'turret_sniper', name: '저격 도토리 포탑', price: 350, effect: () => this.buyTurret('sniper') },
+            { id: 'turret_splash', name: '범위 도토리 포탑', price: 400, effect: () => this.buyTurret('splash') }
+        ];
+        
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        this.closeShopBtn.addEventListener('click', () => {
+            this.hide();
+        });
+    }
+    
+    show() {
+        this.shopMenu.classList.remove('hidden');
+        this.renderItems();
+    }
+    
+    hide() {
+        this.shopMenu.classList.add('hidden');
+    }
+    
+    renderItems() {
+        this.shopItems.innerHTML = '';
+        
+        this.items.forEach(item => {
+            const itemElement = document.createElement('div');
+            const canAfford = this.game.resourceManager.resources >= item.price;
+            itemElement.style.cssText = `background: rgba(255, 255, 255, ${canAfford ? '0.1' : '0.05'}); border: 2px solid ${canAfford ? '#fff' : '#666'}; border-radius: 10px; padding: 15px; cursor: ${canAfford ? 'pointer' : 'not-allowed'}; text-align: center; opacity: ${canAfford ? '1' : '0.6'};`;
+            
+            // 포탑 아이템인 경우 설명 추가
+            let description = '';
+            if (item.id.startsWith('turret_')) {
+                const turretInfo = {
+                    'turret_basic': '범위: 15, 데미지: 20, 발사속도: 1.0',
+                    'turret_rapid': '범위: 12, 데미지: 15, 발사속도: 2.5',
+                    'turret_heavy': '범위: 18, 데미지: 40, 발사속도: 0.6',
+                    'turret_sniper': '범위: 25, 데미지: 50, 발사속도: 0.8',
+                    'turret_splash': '범위: 14, 데미지: 25, 발사속도: 1.2 (범위공격)'
+                };
+                description = `<div style="font-size: 12px; color: #ccc; margin-top: 5px;">${turretInfo[item.id] || ''}</div>`;
+            }
+            
+            itemElement.innerHTML = `
+                <div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">${item.name}</div>
+                <div style="font-size: 16px; color: #ffd700;">💰 ${item.price}</div>
+                ${description}
+            `;
+            
+            if (canAfford) {
+                itemElement.addEventListener('click', () => {
+                    this.purchaseItem(item);
+                });
+            }
+            
+            this.shopItems.appendChild(itemElement);
+        });
+    }
+    
+    purchaseItem(item) {
+        if (this.game.resourceManager.resources >= item.price) {
+            this.game.resourceManager.spendResources(item.price);
+            item.effect();
+            this.game.uiManager.showStageTitle(`${item.name} 구매 완료!`);
+            this.renderItems();
+        } else {
+            this.game.uiManager.showStageTitle('리소스가 부족합니다!');
+        }
+    }
+    
+    upgradeDamage() {
+        if (this.game.weaponManager.currentWeapon) {
+            this.game.weaponManager.currentWeapon.damage *= 1.2;
+        }
+    }
+    
+    upgradeFireRate() {
+        if (this.game.weaponManager.currentWeapon) {
+            this.game.weaponManager.currentWeapon.fireRate *= 0.9;
+        }
+    }
+    
+    upgradeAmmo() {
+        if (this.game.weaponManager.currentWeapon) {
+            this.game.weaponManager.currentWeapon.maxAmmo = Math.floor(this.game.weaponManager.currentWeapon.maxAmmo * 1.3);
+            this.game.weaponManager.currentWeapon.currentAmmo = this.game.weaponManager.currentWeapon.maxAmmo;
+            this.game.uiManager.updateAmmo(this.game.weaponManager.currentWeapon.currentAmmo, this.game.weaponManager.currentWeapon.maxAmmo);
+        }
+    }
+    
+    healPlayer() {
+        this.game.player.currentHealth = this.game.player.maxHealth;
+        this.game.uiManager.updateHealth(this.game.player.currentHealth, this.game.player.maxHealth);
+    }
+    
+    upgradeSpeed() {
+        this.game.player.speed *= 1.15;
+        this.game.player.runSpeed *= 1.15;
+    }
+    
+    healTower() {
+        if (this.game.tower) {
+            this.game.tower.currentHealth = Math.min(this.game.tower.currentHealth + 200, this.game.tower.maxHealth);
+            this.game.uiManager.updateTowerHealth(this.game.tower.currentHealth, this.game.tower.maxHealth);
+        }
+    }
+    
+    buyTurret(type) {
+        // 포탑은 상점에서 구매하면 바로 설치됨
+        const turretCosts = {
+            'basic': 150,
+            'rapid': 200,
+            'heavy': 300,
+            'sniper': 350,
+            'splash': 400
+        };
+        
+        const cost = turretCosts[type] || 150;
+        
+        if (this.game.resourceManager.resources >= cost) {
+            this.game.resourceManager.spendResources(cost);
+            // 플레이어 앞에 포탑 설치
+            const camera = this.game.camera;
+            const direction = new THREE.Vector3();
+            camera.getWorldDirection(direction);
+            direction.y = 0;
+            direction.normalize();
+            
+            const turretPosition = camera.position.clone();
+            turretPosition.add(direction.multiplyScalar(5));
+            turretPosition.y = 0;
+            
+            // 포탑 생성
+            const turret = new TurretBase(this.game.scene, turretPosition, type);
+            this.game.turrets.push(turret);
+            
+            const typeNames = {
+                'basic': '기본 도토리 포탑',
+                'rapid': '빠른 도토리 포탑',
+                'heavy': '강력한 도토리 포탑',
+                'sniper': '저격 도토리 포탑',
+                'splash': '범위 도토리 포탑'
+            };
+            
+            this.game.uiManager.showStageTitle(typeNames[type] + ' 설치 완료!');
+            this.renderItems(); // 상점 아이템 업데이트
+        } else {
+            this.game.uiManager.showStageTitle('리소스가 부족합니다!');
+        }
+    }
+}
+
 // ParticleSystem
 class ParticleSystem {
     constructor(scene) {
@@ -1936,11 +2898,11 @@ class UIManager {
                 this.elements.comboDisplay.textContent = `Combo x${combo}!`;
             }
             
-            // 콤보 표시 애니메이션
-            this.elements.comboDisplay.style.animation = 'none';
+            // 콤보 효과 애니메이션
+            this.elements.comboDisplay.classList.add('combo-effect');
             setTimeout(() => {
-                this.elements.comboDisplay.style.animation = 'bounce 0.5s ease-in-out';
-            }, 10);
+                this.elements.comboDisplay.classList.remove('combo-effect');
+            }, 500);
         } else {
             this.elements.comboDisplay.style.display = 'none';
         }
@@ -1955,6 +2917,40 @@ class UIManager {
     
     hideBossHealth() {
         this.elements.bossHealthBar.classList.add('hidden');
+    }
+    
+    updateTowerHealth(current, max) {
+        let towerHealthBar = document.getElementById('towerHealthBar');
+        if (!towerHealthBar) {
+            towerHealthBar = document.createElement('div');
+            towerHealthBar.id = 'towerHealthBar';
+            towerHealthBar.style.cssText = 'position: fixed; top: 100px; left: 50%; transform: translateX(-50%); width: 300px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 1000;';
+            towerHealthBar.innerHTML = '<div style="color: white; margin-bottom: 5px;">도토리 타워</div><div style="background: #333; height: 20px; border-radius: 3px; overflow: hidden;"><div id="towerHealthBarFill" style="background: #4CAF50; height: 100%; width: 100%; transition: width 0.3s;"></div></div><div id="towerHealthText" style="color: white; margin-top: 5px; text-align: center;"></div>';
+            document.body.appendChild(towerHealthBar);
+        }
+        const percent = (current / max) * 100;
+        const fill = document.getElementById('towerHealthBarFill');
+        const text = document.getElementById('towerHealthText');
+        if (fill) {
+            fill.style.width = percent + '%';
+            if (percent < 30) fill.style.background = '#f44336';
+            else if (percent < 60) fill.style.background = '#ff9800';
+            else fill.style.background = '#4CAF50';
+        }
+        if (text) text.textContent = `${Math.round(current)} / ${max}`;
+    }
+    
+    updateResources(resources) {
+        let resourceDisplay = document.getElementById('resourceDisplay');
+        if (!resourceDisplay) {
+            resourceDisplay = document.createElement('div');
+            resourceDisplay.id = 'resourceDisplay';
+            resourceDisplay.style.cssText = 'position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 1000; color: #ffd700; font-size: 20px; font-weight: bold;';
+            resourceDisplay.innerHTML = '💰 <span id="resourceValue">0</span>';
+            document.body.appendChild(resourceDisplay);
+        }
+        const resourceValue = document.getElementById('resourceValue');
+        if (resourceValue) resourceValue.textContent = resources;
     }
 }
 
@@ -2116,7 +3112,7 @@ class PlayerController {
         
         this.collidableObjects = [];
         this.playerRadius = 0.3;
-        this.collisionEnabled = false; // 일단 충돌 감지 비활성화 (디버깅용)
+        this.collisionEnabled = false; // 충돌 감지 일시 비활성화 (이동 문제 해결 후 재활성화)
         
         this.onHealthChanged = null;
         this.onSugarRushToggle = null;
@@ -2320,28 +3316,33 @@ class PlayerController {
         //     currentPos: {x: this.camera.position.x, z: this.camera.position.z}
         // });
         
-        // 충돌 체크
-        if (this.collisionEnabled && this.collidableObjects.length > 0) {
-            // X축 이동 체크
-            const xCollision = this.checkCollision(newX, this.camera.position.y, this.camera.position.z);
-            if (!xCollision) {
-                this.camera.position.x = newX;
-            } else {
-                this.velocity.x = 0; // 충돌 시 멈춤
-            }
-            
-            // Z축 이동 체크
-            const zCollision = this.checkCollision(this.camera.position.x, this.camera.position.y, newZ);
-            if (!zCollision) {
-                this.camera.position.z = newZ;
-            } else {
-                this.velocity.z = 0; // 충돌 시 멈춤
-            }
-        } else {
-            // 충돌 감지 비활성화 시 바로 이동
-            this.camera.position.x = newX;
-            this.camera.position.z = newZ;
-        }
+        // 충돌 체크 (일시 비활성화)
+        // TODO: 충돌 감지 로직 개선 후 재활성화
+        // if (this.collisionEnabled && this.collidableObjects.length > 0) {
+        //     // X축 이동 체크
+        //     const xCollision = this.checkCollision(newX, this.camera.position.y, this.camera.position.z);
+        //     if (!xCollision) {
+        //         this.camera.position.x = newX;
+        //     } else {
+        //         this.velocity.x = 0; // 충돌 시 멈춤
+        //     }
+        //     
+        //     // Z축 이동 체크
+        //     const zCollision = this.checkCollision(this.camera.position.x, this.camera.position.y, newZ);
+        //     if (!zCollision) {
+        //         this.camera.position.z = newZ;
+        //     } else {
+        //         this.velocity.z = 0; // 충돌 시 멈춤
+        //     }
+        // } else {
+        //     // 충돌 감지 비활성화 시 바로 이동
+        //     this.camera.position.x = newX;
+        //     this.camera.position.z = newZ;
+        // }
+        
+        // 일시적으로 충돌 체크 없이 바로 이동
+        this.camera.position.x = newX;
+        this.camera.position.z = newZ;
         
         // 맵 경계 체크 (벽 통과 방지) - 맵 크기 200 기준
         const mapSize = 100; // 맵 크기의 절반 (200/2)
@@ -2621,7 +3622,7 @@ class PowerUp {
     checkCollection(playerPos) {
         if (this.collected) return false;
         const distance = this.position.distanceTo(playerPos);
-        if (distance < 1.0) {
+        if (distance < 1.5) { // 수집 거리 증가
             this.collect();
             return true;
         }
@@ -2633,6 +3634,411 @@ class PowerUp {
         this.scene.remove(this.mesh);
         this.mesh.geometry.dispose();
         this.mesh.material.dispose();
+    }
+}
+
+// Tower - 중앙 도토리 타워
+class Tower {
+    constructor(scene, position) {
+        this.scene = scene;
+        this.position = position.clone();
+        this.maxHealth = 1000;
+        this.currentHealth = this.maxHealth;
+        this.isDestroyed = false;
+        
+        this.mesh = null;
+        this.createMesh();
+        
+        this.onDestroyed = null;
+        this.onHealthChanged = null;
+    }
+    
+    createMesh() {
+        // 거대한 도토리 타워
+        const towerGroup = new THREE.Group();
+        
+        // 도토리 몸체 (아래쪽이 넓은 원통)
+        const bodyGeometry = new THREE.CylinderGeometry(3.5, 4.5, 10, 12);
+        const bodyMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x8b4513, // 갈색
+            roughness: 0.9,
+            metalness: 0.1
+        });
+        const towerBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        towerBody.position.set(0, 5, 0);
+        towerBody.castShadow = true;
+        towerBody.receiveShadow = true;
+        towerGroup.add(towerBody);
+        
+        // 도토리 중간 부분 (구)
+        const middleGeometry = new THREE.SphereGeometry(3.2, 12, 12);
+        const middleMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x8b4513,
+            roughness: 0.9
+        });
+        const middle = new THREE.Mesh(middleGeometry, middleMaterial);
+        middle.position.set(0, 10.5, 0);
+        middle.scale.set(1, 1.3, 1);
+        middle.castShadow = true;
+        towerGroup.add(middle);
+        
+        // 도토리 뚜껑 (어두운 갈색 원뿔)
+        const capGeometry = new THREE.ConeGeometry(2.5, 2, 12);
+        const capMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x654321, // 어두운 갈색
+            roughness: 0.8
+        });
+        const cap = new THREE.Mesh(capGeometry, capMaterial);
+        cap.position.set(0, 12.5, 0);
+        cap.castShadow = true;
+        towerGroup.add(cap);
+        
+        // 도토리 줄기 (작은 원뿔)
+        const stemGeometry = new THREE.ConeGeometry(0.3, 0.8, 8);
+        const stemMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x4a4a2a,
+            roughness: 0.7
+        });
+        const stem = new THREE.Mesh(stemGeometry, stemMaterial);
+        stem.position.set(0, 13.8, 0);
+        towerGroup.add(stem);
+        
+        // 장식용 작은 도토리들 (타워 주변)
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            const smallAcornGeometry = new THREE.SphereGeometry(0.4, 8, 8);
+            const smallAcornMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x9b5a2a,
+                roughness: 0.9
+            });
+            const smallAcorn = new THREE.Mesh(smallAcornGeometry, smallAcornMaterial);
+            smallAcorn.position.set(
+                Math.cos(angle) * 4.5,
+                3 + Math.sin(i) * 2,
+                Math.sin(angle) * 4.5
+            );
+            smallAcorn.scale.set(1, 1.2, 1);
+            towerGroup.add(smallAcorn);
+            
+            // 작은 도토리 뚜껑
+            const smallCap = new THREE.Mesh(
+                new THREE.ConeGeometry(0.3, 0.3, 8),
+                new THREE.MeshStandardMaterial({ color: 0x654321 })
+            );
+            smallCap.position.copy(smallAcorn.position);
+            smallCap.position.y += 0.5;
+            towerGroup.add(smallCap);
+        }
+        
+        towerGroup.position.copy(this.position);
+        this.mesh = towerGroup;
+        this.scene.add(this.mesh);
+    }
+    
+    takeDamage(amount) {
+        if (this.isDestroyed) return;
+        
+        this.currentHealth -= amount;
+        if (this.currentHealth < 0) this.currentHealth = 0;
+        
+        if (this.onHealthChanged) {
+            this.onHealthChanged(this.currentHealth, this.maxHealth);
+        }
+        
+        // 타워 파괴 체크
+        if (this.currentHealth <= 0 && !this.isDestroyed) {
+            this.destroy();
+        }
+    }
+    
+    destroy() {
+        if (this.isDestroyed) return;
+        this.isDestroyed = true;
+        
+        // 파괴 애니메이션 - 타워가 무너지는 효과
+        if (this.mesh && this.mesh.children) {
+            let animationFrame = 0;
+            const destroyAnimation = () => {
+                if (animationFrame++ > 100) return; // 100프레임 후 종료
+                
+                this.mesh.children.forEach((child) => {
+                    if (child.position) {
+                        child.position.y -= 0.05;
+                        child.rotation.x += 0.02;
+                        child.rotation.z += 0.02;
+                    }
+                });
+                
+                if (animationFrame < 100) {
+                    requestAnimationFrame(destroyAnimation);
+                }
+            };
+            destroyAnimation();
+        }
+        
+        if (this.onDestroyed) {
+            this.onDestroyed();
+        }
+    }
+    
+    getPosition() {
+        return this.position.clone();
+    }
+}
+
+// TurretBase - 포탑 기본 클래스
+class TurretBase {
+    constructor(scene, position, type = 'basic') {
+        this.scene = scene;
+        this.position = position.clone();
+        this.type = type;
+        this.fireTimer = 0;
+        this.target = null;
+        
+        // 타입별 스탯 설정
+        this.setStats(type);
+        
+        this.mesh = null;
+        this.createMesh();
+    }
+    
+    setStats(type) {
+        switch(type) {
+            case 'basic':
+                this.range = 15;
+                this.damage = 20;
+                this.fireRate = 1.0;
+                this.cost = 150;
+                break;
+            case 'rapid':
+                this.range = 12;
+                this.damage = 15;
+                this.fireRate = 2.5; // 빠른 발사
+                this.cost = 200;
+                break;
+            case 'heavy':
+                this.range = 18;
+                this.damage = 40;
+                this.fireRate = 0.6; // 느린 발사, 강한 데미지
+                this.cost = 300;
+                break;
+            case 'sniper':
+                this.range = 25;
+                this.damage = 50;
+                this.fireRate = 0.8;
+                this.cost = 350;
+                break;
+            case 'splash':
+                this.range = 14;
+                this.damage = 25;
+                this.fireRate = 1.2;
+                this.splashRadius = 3; // 범위 데미지
+                this.cost = 400;
+                break;
+            default:
+                this.range = 15;
+                this.damage = 20;
+                this.fireRate = 1.0;
+                this.cost = 150;
+        }
+    }
+    
+    createMesh() {
+        const turretGroup = new THREE.Group();
+        
+        // 도토리 기둥 (갈색 원통)
+        const baseGeometry = new THREE.CylinderGeometry(0.5, 0.6, 1.5, 8);
+        const baseMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x8b4513, // 갈색
+            roughness: 0.9
+        });
+        const base = new THREE.Mesh(baseGeometry, baseMaterial);
+        base.position.y = 0.75;
+        base.castShadow = true;
+        base.receiveShadow = true;
+        turretGroup.add(base);
+        
+        // 도토리 몸체 (갈색 구)
+        const bodyGeometry = new THREE.SphereGeometry(0.6, 8, 8);
+        const bodyMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x8b4513,
+            roughness: 0.9
+        });
+        const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        body.position.y = 1.8;
+        body.scale.set(1, 1.2, 1);
+        body.castShadow = true;
+        turretGroup.add(body);
+        
+        // 도토리 뚜껑 (어두운 갈색 원뿔)
+        const capGeometry = new THREE.ConeGeometry(0.5, 0.4, 8);
+        const capMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x654321,
+            roughness: 0.8
+        });
+        const cap = new THREE.Mesh(capGeometry, capMaterial);
+        cap.position.y = 2.4;
+        cap.castShadow = true;
+        turretGroup.add(cap);
+        
+        // 포구 (도토리에서 나오는 총알)
+        const barrelGeometry = new THREE.CylinderGeometry(0.1, 0.15, 0.8, 6);
+        const barrelMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x654321,
+            roughness: 0.7
+        });
+        const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
+        barrel.position.set(0, 1.8, 0.6);
+        barrel.rotation.x = Math.PI / 2;
+        turretGroup.add(barrel);
+        
+        // 타입별 특수 효과
+        if (this.type === 'rapid') {
+            // 빠른 포탑 - 작은 도토리 추가
+            const smallAcorn = new THREE.Mesh(
+                new THREE.SphereGeometry(0.2, 6, 6),
+                new THREE.MeshStandardMaterial({ color: 0x9b5a2a })
+            );
+            smallAcorn.position.set(0.3, 1.5, 0);
+            turretGroup.add(smallAcorn);
+        } else if (this.type === 'heavy') {
+            // 강력한 포탑 - 큰 도토리
+            body.scale.set(1.3, 1.4, 1.3);
+            base.scale.set(1.2, 1, 1.2);
+        } else if (this.type === 'sniper') {
+            // 저격 포탑 - 긴 포구
+            barrel.scale.set(1, 1.5, 1);
+            const scope = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.08, 0.08, 0.3, 8),
+                new THREE.MeshStandardMaterial({ color: 0x2c2c2c })
+            );
+            scope.position.set(0, 2.2, 0.3);
+            scope.rotation.x = Math.PI / 2;
+            turretGroup.add(scope);
+        } else if (this.type === 'splash') {
+            // 범위 포탑 - 여러 포구
+            for (let i = 0; i < 3; i++) {
+                const multiBarrel = barrel.clone();
+                multiBarrel.position.set(
+                    (i - 1) * 0.2,
+                    1.8,
+                    0.6
+                );
+                turretGroup.add(multiBarrel);
+            }
+        }
+        
+        turretGroup.position.copy(this.position);
+        this.mesh = turretGroup;
+        this.scene.add(this.mesh);
+    }
+    
+    update(deltaTime, enemies) {
+        this.fireTimer += deltaTime;
+        
+        // 가장 가까운 적 찾기
+        let closestEnemy = null;
+        let closestDistance = this.range;
+        
+        enemies.forEach(enemy => {
+            if (enemy.isDead) return;
+            const distance = this.position.distanceTo(enemy.position);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestEnemy = enemy;
+            }
+        });
+        
+        this.target = closestEnemy;
+        
+        // 적을 향해 포탑 회전
+        if (this.target) {
+            const direction = new THREE.Vector3()
+                .subVectors(this.target.position, this.position)
+                .normalize();
+            const angle = Math.atan2(direction.x, direction.z);
+            this.mesh.rotation.y = angle;
+            
+            // 발사
+            if (this.fireTimer >= 1.0 / this.fireRate) {
+                this.fire(enemies);
+                this.fireTimer = 0;
+            }
+        }
+    }
+    
+    fire(enemies) {
+        if (!this.target || this.target.isDead) return;
+        
+        // 기본 데미지
+        this.target.takeDamage(this.damage);
+        
+        // 범위 데미지 포탑의 경우
+        if (this.type === 'splash' && this.splashRadius) {
+            enemies.forEach(enemy => {
+                if (enemy.isDead || enemy === this.target) return;
+                const distance = this.target.position.distanceTo(enemy.position);
+                if (distance <= this.splashRadius) {
+                    const splashDamage = this.damage * (1 - distance / this.splashRadius) * 0.5;
+                    enemy.takeDamage(splashDamage);
+                }
+            });
+        }
+    }
+    
+    getCost() {
+        return this.cost;
+    }
+    
+    getTypeName() {
+        const names = {
+            'basic': '기본 도토리 포탑',
+            'rapid': '빠른 도토리 포탑',
+            'heavy': '강력한 도토리 포탑',
+            'sniper': '저격 도토리 포탑',
+            'splash': '범위 도토리 포탑'
+        };
+        return names[this.type] || '도토리 포탑';
+    }
+    
+    dispose() {
+        if (this.mesh) {
+            this.scene.remove(this.mesh);
+            this.mesh.traverse((child) => {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
+            });
+        }
+    }
+}
+
+// ResourceManager - 리소스 관리
+class ResourceManager {
+    constructor() {
+        this.resources = 0;
+        this.onResourceChanged = null;
+    }
+    
+    addResources(amount) {
+        this.resources += amount;
+        if (this.onResourceChanged) {
+            this.onResourceChanged(this.resources);
+        }
+    }
+    
+    spendResources(amount) {
+        if (this.resources >= amount) {
+            this.resources -= amount;
+            if (this.onResourceChanged) {
+                this.onResourceChanged(this.resources);
+            }
+            return true;
+        }
+        return false;
+    }
+    
+    getResources() {
+        return this.resources;
     }
 }
 
@@ -2721,6 +4127,18 @@ class Game {
         
         this.isPaused = false;
         this.isGameOver = false;
+        
+        // 디펜스 게임 시스템
+        this.tower = null;
+        this.turrets = [];
+        this.resourceManager = null;
+        
+        // 새로운 시스템
+        this.floatingDamageSystem = null;
+        this.cameraShakeSystem = null;
+        this.hitMarkerSystem = null;
+        this.minimapSystem = null;
+        this.shopSystem = null;
     }
     
     async init() {
@@ -2737,16 +4155,36 @@ class Game {
             this.uiManager = new UIManager();
             this.scoreManager = new ScoreManager();
             this.particleSystem = new ParticleSystem(this.scene);
+            this.resourceManager = new ResourceManager();
             this.stageManager = new StageManager(this.scene);
             this.player = new PlayerController(this.camera, this.scene);
             this.weaponManager = new WeaponManager(this.camera, this.scene);
             this.enemyManager = new EnemyManager(this.scene);
             
-            console.log('이벤트 연결...');
-            this.setupEventListeners();
+            // 새로운 시스템 초기화
+            this.floatingDamageSystem = new FloatingDamageSystem();
+            this.cameraShakeSystem = new CameraShakeSystem(this.camera);
+            this.hitMarkerSystem = new HitMarkerSystem();
+            this.minimapSystem = new MinimapSystem(this.scene, this.camera, null, this.enemyManager.enemies);
+            this.shopSystem = new ShopSystem(this);
+            
+            // 타워 생성 (중앙)
+            this.tower = new Tower(this.scene, new THREE.Vector3(0, 0, 0));
+            this.tower.onDestroyed = () => {
+                this.gameOver();
+            };
+            this.tower.onHealthChanged = (current, max) => {
+                this.uiManager.updateTowerHealth(current, max);
+            };
+            
+            // 미니맵에 타워 참조 설정
+            this.minimapSystem.tower = this.tower;
             
             console.log('스테이지 로드...');
             await this.stageManager.loadStage('mossyMeadow');
+            
+            console.log('이벤트 연결...');
+            this.setupEventListeners();
             
             // 충돌 가능한 오브젝트 수집 - 약간의 지연 후 (씬이 완전히 로드된 후)
             setTimeout(() => {
@@ -2783,14 +4221,16 @@ class Game {
                 this.player.setCollidableObjects(collidableObjects);
             }, 200);
             
-            // 게임 시작 시 적 자동 스폰
-            this.enemyManager.startWave();
-            
             // 초기 UI 업데이트
             this.uiManager.updateHealth(this.player.currentHealth, this.player.maxHealth);
             this.uiManager.updateAmmo(this.weaponManager.currentWeapon.currentAmmo, this.weaponManager.currentWeapon.maxAmmo);
             this.uiManager.updateSugarMeter(this.player.sugarMeter, this.player.maxSugarMeter);
             this.uiManager.updateScore(this.scoreManager.score);
+            
+            // 타워 체력 초기 표시
+            if (this.tower) {
+                this.uiManager.updateTowerHealth(this.tower.currentHealth, this.tower.maxHealth);
+            }
             
             console.log('로딩 완료, 메인 메뉴 표시...');
             this.hideLoadingScreen();
@@ -2844,8 +4284,25 @@ class Game {
     }
     
     setupEventListeners() {
+        // 플레이어 이전 체력 추적 (데미지 전달 방지)
+        this.playerPreviousHealth = this.player.maxHealth;
+        
         this.player.onHealthChanged = (current, max) => {
             this.uiManager.updateHealth(current, max);
+            // 플레이어가 데미지를 받으면 타워 체력도 일부 감소 (데미지만, 힐 제외)
+            if (current < this.playerPreviousHealth && this.tower && !this.tower.isDestroyed) {
+                const damageTaken = this.playerPreviousHealth - current;
+                // 실제로 데미지를 받았을 때만 타워에 전달
+                if (damageTaken > 0) {
+                    const towerDamage = damageTaken * 0.1; // 플레이어 데미지의 10%를 타워에 전달
+                    this.tower.takeDamage(towerDamage);
+                    // 플레이어 피격 시 카메라 쉐이크
+                    if (this.cameraShakeSystem) {
+                        this.cameraShakeSystem.shake(0.15, 0.3);
+                    }
+                }
+            }
+            this.playerPreviousHealth = current;
         };
         
         this.player.onSugarRushToggle = (active) => {
@@ -2863,7 +4320,28 @@ class Game {
             this.uiManager.updateWeaponName(weapon.name);
         };
         
+        // 적이 타워를 타겟으로 설정
+        this.enemyManager.setTowerTarget = (tower) => {
+            this.enemyManager.enemies.forEach(enemy => {
+                enemy.setTowerTarget(tower);
+            });
+        };
+        
+        // 새 적 스폰 시 타워 타겟 설정
+        const originalSpawnEnemy = this.enemyManager.spawnEnemy.bind(this.enemyManager);
+        this.enemyManager.spawnEnemy = (type, position, player, playerController) => {
+            const enemy = originalSpawnEnemy(type, position, player, playerController);
+            if (this.tower) {
+                enemy.setTowerTarget(this.tower);
+            }
+            return enemy;
+        };
+        
         this.enemyManager.onEnemyKilled = (enemy, isHeadshot = false) => {
+            // 리소스 획득
+            if (this.resourceManager) {
+                this.resourceManager.addResources(enemy.resourceValue || 10);
+            }
             this.player.addSugar(10);
             this.uiManager.updateSugarMeter(this.player.sugarMeter, this.player.maxSugarMeter);
             
@@ -2902,12 +4380,113 @@ class Game {
         // 웨이브 시작 콜백
         this.enemyManager.onWaveStart = (wave) => {
             this.currentWave = wave;
+            console.log('웨이브 시작:', wave);
+            // 5웨이브마다 보스 스폰 리셋 및 체크
+            if (wave % 5 === 0) {
+                this.bossSpawned = false;
+                // 보스 스폰 체크
+                this.checkBossSpawn();
+            }
         };
         
         // 웨이브 완료 콜백
         this.enemyManager.onWaveComplete = () => {
             this.onWaveComplete();
+            // 상점은 B 키로만 열 수 있음 (자동 오픈 제거)
         };
+        
+        // 모든 적이 타워를 타겟으로 설정
+        if (this.tower) {
+            this.enemyManager.enemies.forEach(enemy => {
+                enemy.setTowerTarget(this.tower);
+            });
+        }
+        
+        // 리소스 변경 시 UI 업데이트
+        this.resourceManager.onResourceChanged = (resources) => {
+            this.uiManager.updateResources(resources);
+        };
+        
+        // 초기 리소스 표시
+        this.uiManager.updateResources(0);
+        
+        // 게임 인스턴스를 전역으로 설정 (플로팅 데미지 시스템에서 접근하기 위해)
+        window.game = this;
+        
+        // T 키로 포탑 설치
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyT' && !this.isPaused && !this.isGameOver) {
+                e.preventDefault();
+                this.placeTurret();
+            }
+            // B 키로 상점 열기/닫기
+            if (e.code === 'KeyB' && !this.isGameOver) {
+                e.preventDefault();
+                if (this.shopSystem) {
+                    if (this.shopSystem.shopMenu.classList.contains('hidden')) {
+                        // 상점 열기
+                        this.isPaused = true;
+                        this.shopSystem.show();
+                    } else {
+                        // 상점 닫기
+                        this.shopSystem.hide();
+                        this.isPaused = false;
+                    }
+                }
+            }
+        });
+        
+        // 상점 닫기 버튼
+        if (this.shopSystem) {
+            this.shopSystem.closeShopBtn.addEventListener('click', () => {
+                this.shopSystem.hide();
+                this.isPaused = false;
+            });
+        }
+    }
+    
+    placeTurret(type = 'basic') {
+        // 포탑 타입별 비용
+        const turretCosts = {
+            'basic': 150,
+            'rapid': 200,
+            'heavy': 300,
+            'sniper': 350,
+            'splash': 400
+        };
+        
+        const turretCost = turretCosts[type] || 150;
+        
+        if (!this.resourceManager.spendResources(turretCost)) {
+            // 리소스 부족
+            this.uiManager.showStageTitle('리소스 부족! (필요: ' + turretCost + ')');
+            return;
+        }
+        
+        // 플레이어 앞에 포탑 설치
+        const camera = this.camera;
+        const direction = new THREE.Vector3();
+        camera.getWorldDirection(direction);
+        direction.y = 0;
+        direction.normalize();
+        
+        const turretPosition = camera.position.clone();
+        turretPosition.add(direction.multiplyScalar(5));
+        turretPosition.y = 0;
+        
+        // 포탑 생성
+        const turret = new TurretBase(this.scene, turretPosition, type);
+        this.turrets.push(turret);
+        
+        const typeNames = {
+            'basic': '기본 도토리 포탑',
+            'rapid': '빠른 도토리 포탑',
+            'heavy': '강력한 도토리 포탑',
+            'sniper': '저격 도토리 포탑',
+            'splash': '범위 도토리 포탑'
+        };
+        
+        this.uiManager.showStageTitle(typeNames[type] + ' 설치 완료!');
     }
     
     animate() {
@@ -2924,14 +4503,27 @@ class Game {
         this.scoreManager.update(deltaTime);
         this.particleSystem.update(deltaTime);
         
+        // 포탑 업데이트
+        this.turrets.forEach(turret => {
+            turret.update(deltaTime, this.enemyManager.enemies);
+        });
+        
         // 파워업 업데이트
         this.updatePowerUps(deltaTime);
         
         // 보스 체력바 업데이트
         this.updateBossHealth();
         
-        // 보스 스폰 체크
-        this.checkBossSpawn();
+        // 새로운 시스템 업데이트
+        if (this.cameraShakeSystem) {
+            this.cameraShakeSystem.update(deltaTime);
+        }
+        if (this.minimapSystem) {
+            this.minimapSystem.enemies = this.enemyManager.enemies;
+            this.minimapSystem.update();
+        }
+        
+        // 보스 스폰 체크는 onWaveStart에서만 수행
         
         this.renderer.render(this.scene, this.camera);
     }
@@ -2942,9 +4534,11 @@ class Game {
             const powerUp = this.powerUps[i];
             powerUp.update(deltaTime);
             
-            if (powerUp.checkCollection(playerPos)) {
+            if (powerUp && !powerUp.collected && powerUp.checkCollection(playerPos)) {
+                console.log('파워업 수집:', powerUp.type);
                 this.applyPowerUp(powerUp.type);
                 this.powerUps.splice(i, 1);
+                this.uiManager.showStageTitle('파워업 획득: ' + powerUp.type);
             }
         }
     }
@@ -3010,14 +4604,15 @@ class Game {
     checkBossSpawn() {
         if (this.bossSpawned) return;
         
-        // 5웨이브마다 보스 스폰 (적이 모두 처치된 후)
-        if (this.currentWave > 0 && this.currentWave % 5 === 0 && this.enemyManager.enemies.length === 0) {
-            setTimeout(() => {
-                const spawnPoint = this.enemyManager.getRandomSpawnPoint();
-                this.enemyManager.spawnEnemy('boss', spawnPoint, this.player.camera, this.player);
+        // 5웨이브마다 보스 스폰 (웨이브 시작 시)
+        if (this.currentWave > 0 && this.currentWave % 5 === 0) {
+            const spawnPoint = this.enemyManager.getRandomSpawnPoint();
+            const boss = this.enemyManager.spawnEnemy('boss', spawnPoint, this.player.camera, this.player);
+            if (boss) {
                 this.bossSpawned = true;
                 this.uiManager.showStageTitle('BOSS APPEARED!');
-            }, 2000);
+                console.log('보스 스폰:', this.currentWave, '웨이브');
+            }
         }
     }
     
@@ -3055,11 +4650,16 @@ class Game {
             canvas.requestPointerLock();
         }
         
-        // 게임 시작 시 추가 적 스폰
-        setTimeout(() => {
-            this.enemyManager.startWave();
-            this.currentWave = this.enemyManager.currentWave;
-        }, 5000);
+        // 모든 적이 타워를 타겟으로 설정
+        if (this.tower) {
+            this.enemyManager.enemies.forEach(enemy => {
+                enemy.setTowerTarget(this.tower);
+            });
+        }
+        
+        // 게임 시작 시 첫 웨이브 스폰
+        this.enemyManager.startWave();
+        this.currentWave = this.enemyManager.currentWave;
     }
     
     pause() {
@@ -3072,11 +4672,27 @@ class Game {
     
     gameOver() {
         this.isGameOver = true;
+        this.isPaused = true;
+        
+        // 게임 오버 UI 표시
+        const gameOverScreen = document.createElement('div');
+        gameOverScreen.id = 'gameOverScreen';
+        gameOverScreen.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; font-size: 48px;';
+        gameOverScreen.innerHTML = `
+            <div style="text-align: center;">
+                <h1 style="font-size: 72px; margin-bottom: 20px; color: #ff0000;">GAME OVER</h1>
+                <p style="font-size: 24px; margin-bottom: 20px;">도토리 타워가 파괴되었습니다!</p>
+                <p style="font-size: 20px; margin-bottom: 40px;">최종 점수: ${this.scoreManager.score.toLocaleString()}</p>
+                <p style="font-size: 18px; color: #ccc;">페이지를 새로고침하여 다시 시작하세요.</p>
+            </div>
+        `;
+        document.body.appendChild(gameOverScreen);
     }
     
     onWaveComplete() {
         this.currentWave = this.enemyManager.currentWave;
         this.bossSpawned = false; // 보스 처치 후 리셋
+        // 다음 웨이브는 EnemyManager에서 자동으로 시작됨
     }
 }
 
