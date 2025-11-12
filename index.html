@@ -480,18 +480,26 @@ body {
             </div>
             
             <!-- 점수 표시 -->
-            <div id="scoreDisplay" style="position: absolute; top: 20px; right: 20px; background: rgba(255, 182, 193, 0.8); padding: 15px 25px; border-radius: 15px; border: 3px solid #fff; font-size: 24px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);">
+            <div id="scoreDisplay" style="position: fixed; top: 20px; right: 20px; background: rgba(255, 182, 193, 0.8); padding: 12px 20px; border-radius: 12px; border: 2px solid #fff; font-size: 20px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5); z-index: 100;">
                 <div>Score: <span id="scoreValue">0</span></div>
-                <div id="comboDisplay" style="font-size: 16px; margin-top: 5px; color: #ffd700; display: none;">Combo x<span id="comboValue">0</span>!</div>
+                <div id="comboDisplay" style="font-size: 14px; margin-top: 5px; color: #ffd700; display: none;">Combo x<span id="comboValue">0</span>!</div>
             </div>
             
             <!-- 보스 체력바 -->
-            <div id="bossHealthBar" class="hidden" style="position: absolute; top: 80px; left: 50%; transform: translateX(-50%); width: 600px; background: rgba(0, 0, 0, 0.7); border: 3px solid #ff0000; border-radius: 15px; padding: 10px;">
-                <div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 5px; color: #ff0000;">BOSS</div>
-                <div style="background: rgba(255, 0, 0, 0.3); height: 30px; border-radius: 10px; overflow: hidden;">
+            <div id="bossHealthBar" class="hidden" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); width: 500px; max-width: 90%; background: rgba(0, 0, 0, 0.8); border: 2px solid #ff0000; border-radius: 10px; padding: 8px; z-index: 999;">
+                <div style="text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 5px; color: #ff0000;">BOSS</div>
+                <div style="background: rgba(255, 0, 0, 0.3); height: 25px; border-radius: 5px; overflow: hidden;">
                     <div id="bossHealthFill" style="background: linear-gradient(90deg, #ff0000 0%, #ff6666 100%); height: 100%; width: 100%; transition: width 0.3s;"></div>
                 </div>
-                <div id="bossHealthText" style="text-align: center; margin-top: 5px; font-weight: bold;">100%</div>
+                <div id="bossHealthText" style="text-align: center; margin-top: 5px; font-weight: bold; font-size: 14px; color: #fff;">100%</div>
+            </div>
+            
+            <!-- B키 안내 (상시 표시) -->
+            <div id="shopHint" style="position: fixed; bottom: 20px; right: 20px; background: rgba(0, 0, 0, 0.7); border: 2px solid #ffd700; border-radius: 8px; padding: 10px 15px; z-index: 100; color: #ffd700; font-size: 14px; font-weight: bold;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span>B</span>
+                    <span>상점 열기</span>
+                </div>
             </div>
             
             <!-- 상호작용 UI -->
@@ -513,17 +521,20 @@ body {
             </div>
             
             <!-- 미니맵 -->
-            <div id="minimap" style="position: absolute; top: 20px; left: 20px; width: 200px; height: 200px; background: rgba(0, 0, 0, 0.6); border: 3px solid #fff; border-radius: 10px; z-index: 100;">
-                <canvas id="minimapCanvas" width="200" height="200" style="border-radius: 7px;"></canvas>
+            <div id="minimap" style="position: fixed; top: 20px; left: 20px; width: 180px; height: 180px; background: rgba(0, 0, 0, 0.7); border: 2px solid #fff; border-radius: 8px; z-index: 100;">
+                <canvas id="minimapCanvas" width="180" height="180" style="border-radius: 6px;"></canvas>
             </div>
             
             <!-- 웨이브 간 상점 -->
-            <div id="shopMenu" class="hidden" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.9); border: 5px solid #fff; border-radius: 20px; padding: 30px; z-index: 10000; min-width: 500px;">
-                <h2 style="text-align: center; margin-bottom: 20px; font-size: 32px; color: #ffd700;">상점</h2>
-                <div id="shopItems" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+            <div id="shopMenu" class="hidden" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0, 0, 0, 0.95); border: 3px solid #ffd700; border-radius: 15px; padding: 20px; z-index: 10000; max-width: 90vw; max-height: 85vh; overflow-y: auto; box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2 style="margin: 0; font-size: 24px; color: #ffd700;">상점</h2>
+                    <button id="closeShop" style="padding: 8px 15px; font-size: 14px; background: #ff6b6b; color: white; border: none; border-radius: 5px; cursor: pointer;">닫기 (B)</button>
+                </div>
+                <p style="text-align: center; margin-bottom: 15px; font-size: 12px; color: #aaa;">WASD 선택 후 엔터/스페이스 또는 클릭</p>
+                <div id="shopItems" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; max-height: 60vh; overflow-y: auto;">
                     <!-- 상점 아이템들은 JavaScript로 동적 생성 -->
                 </div>
-                <button id="closeShop" style="margin-top: 20px; width: 100%; padding: 15px; font-size: 20px; background: #ff6b6b; color: white; border: none; border-radius: 10px; cursor: pointer;">닫기</button>
             </div>
         </div>
         
@@ -2522,6 +2533,10 @@ class ShopSystem {
             { id: 'turret_splash', name: '범위 도토리 포탑', price: 400, effect: () => this.buyTurret('splash') }
         ];
         
+        this.selectedIndex = 0;
+        this.itemElements = [];
+        this.gridColumns = 2; // 2열 그리드
+        
         this.setupEventListeners();
     }
     
@@ -2533,48 +2548,137 @@ class ShopSystem {
     
     show() {
         this.shopMenu.classList.remove('hidden');
+        this.selectedIndex = 0;
         this.renderItems();
+        this.updateSelection();
     }
     
     hide() {
         this.shopMenu.classList.add('hidden');
     }
     
+    handleKeyInput(keyCode) {
+        if (this.shopMenu.classList.contains('hidden')) return false;
+        
+        switch(keyCode) {
+            case 'KeyW':
+            case 'ArrowUp':
+                this.moveSelection(0, -1);
+                return true;
+            case 'KeyS':
+            case 'ArrowDown':
+                this.moveSelection(0, 1);
+                return true;
+            case 'KeyA':
+            case 'ArrowLeft':
+                this.moveSelection(-1, 0);
+                return true;
+            case 'KeyD':
+            case 'ArrowRight':
+                this.moveSelection(1, 0);
+                return true;
+            case 'Enter':
+            case 'Space':
+                this.purchaseSelected();
+                return true;
+        }
+        return false;
+    }
+    
+    moveSelection(dx, dy) {
+        const oldIndex = this.selectedIndex;
+        const row = Math.floor(this.selectedIndex / this.gridColumns);
+        const col = this.selectedIndex % this.gridColumns;
+        
+        let newRow = row + dy;
+        let newCol = col + dx;
+        
+        // 경계 체크
+        newRow = Math.max(0, Math.min(newRow, Math.floor((this.items.length - 1) / this.gridColumns)));
+        newCol = Math.max(0, Math.min(newCol, this.gridColumns - 1));
+        
+        this.selectedIndex = newRow * this.gridColumns + newCol;
+        
+        // 마지막 행의 경우 열 범위 체크
+        if (this.selectedIndex >= this.items.length) {
+            this.selectedIndex = this.items.length - 1;
+        }
+        
+        if (oldIndex !== this.selectedIndex) {
+            this.updateSelection();
+        }
+    }
+    
+    updateSelection() {
+        this.itemElements.forEach((element, index) => {
+            if (index === this.selectedIndex) {
+                element.style.border = '3px solid #4ade80';
+                element.style.background = 'rgba(74, 222, 128, 0.2)';
+                element.style.transform = 'scale(1.05)';
+            } else {
+                const canAfford = this.game.resourceManager.resources >= this.items[index].price;
+                element.style.border = `2px solid ${canAfford ? '#fff' : '#666'}`;
+                element.style.background = `rgba(255, 255, 255, ${canAfford ? '0.1' : '0.05'})`;
+                element.style.transform = 'scale(1)';
+            }
+        });
+    }
+    
+    purchaseSelected() {
+        if (this.selectedIndex >= 0 && this.selectedIndex < this.items.length) {
+            const item = this.items[this.selectedIndex];
+            this.purchaseItem(item);
+        }
+    }
+    
     renderItems() {
         this.shopItems.innerHTML = '';
+        this.itemElements = [];
         
-        this.items.forEach(item => {
+        this.items.forEach((item, index) => {
             const itemElement = document.createElement('div');
             const canAfford = this.game.resourceManager.resources >= item.price;
-            itemElement.style.cssText = `background: rgba(255, 255, 255, ${canAfford ? '0.1' : '0.05'}); border: 2px solid ${canAfford ? '#fff' : '#666'}; border-radius: 10px; padding: 15px; cursor: ${canAfford ? 'pointer' : 'not-allowed'}; text-align: center; opacity: ${canAfford ? '1' : '0.6'};`;
+            itemElement.style.cssText = `background: rgba(255, 255, 255, ${canAfford ? '0.1' : '0.05'}); border: 2px solid ${canAfford ? '#fff' : '#666'}; border-radius: 8px; padding: 10px; cursor: ${canAfford ? 'pointer' : 'not-allowed'}; text-align: center; opacity: ${canAfford ? '1' : '0.6'}; transition: all 0.2s ease;`;
             
-            // 포탑 아이템인 경우 설명 추가
+            // 포탑 아이템인 경우 간단한 설명만
             let description = '';
             if (item.id.startsWith('turret_')) {
                 const turretInfo = {
-                    'turret_basic': '범위: 15, 데미지: 20, 발사속도: 1.0',
-                    'turret_rapid': '범위: 12, 데미지: 15, 발사속도: 2.5',
-                    'turret_heavy': '범위: 18, 데미지: 40, 발사속도: 0.6',
-                    'turret_sniper': '범위: 25, 데미지: 50, 발사속도: 0.8',
-                    'turret_splash': '범위: 14, 데미지: 25, 발사속도: 1.2 (범위공격)'
+                    'turret_basic': '범위15/데미지20',
+                    'turret_rapid': '범위12/데미지15/빠름',
+                    'turret_heavy': '범위18/데미지40/강함',
+                    'turret_sniper': '범위25/데미지50/저격',
+                    'turret_splash': '범위14/데미지25/범위공격'
                 };
-                description = `<div style="font-size: 12px; color: #ccc; margin-top: 5px;">${turretInfo[item.id] || ''}</div>`;
+                description = `<div style="font-size: 10px; color: #aaa; margin-top: 3px;">${turretInfo[item.id] || ''}</div>`;
             }
             
             itemElement.innerHTML = `
-                <div style="font-size: 18px; font-weight: bold; margin-bottom: 5px;">${item.name}</div>
-                <div style="font-size: 16px; color: #ffd700;">💰 ${item.price}</div>
+                <div style="font-size: 14px; font-weight: bold; margin-bottom: 3px;">${item.name}</div>
+                <div style="font-size: 16px; color: #ffd700; margin-bottom: 3px;">💰 ${item.price}</div>
                 ${description}
             `;
             
             if (canAfford) {
+                // 마우스 클릭으로도 구매 가능
                 itemElement.addEventListener('click', () => {
+                    this.selectedIndex = index;
+                    this.updateSelection();
                     this.purchaseItem(item);
+                });
+                
+                // 마우스 호버 시 선택
+                itemElement.addEventListener('mouseenter', () => {
+                    this.selectedIndex = index;
+                    this.updateSelection();
                 });
             }
             
+            this.itemElements.push(itemElement);
             this.shopItems.appendChild(itemElement);
         });
+        
+        this.updateSelection();
     }
     
     purchaseItem(item) {
@@ -2582,7 +2686,15 @@ class ShopSystem {
             this.game.resourceManager.spendResources(item.price);
             item.effect();
             this.game.uiManager.showStageTitle(`${item.name} 구매 완료!`);
+            const currentIndex = this.selectedIndex;
             this.renderItems();
+            // 구매 후에도 같은 위치에 선택 유지 (아이템이 제거되지 않는 경우)
+            if (currentIndex < this.items.length) {
+                this.selectedIndex = currentIndex;
+            } else {
+                this.selectedIndex = Math.max(0, this.items.length - 1);
+            }
+            this.updateSelection();
         } else {
             this.game.uiManager.showStageTitle('리소스가 부족합니다!');
         }
@@ -2638,32 +2750,63 @@ class ShopSystem {
         const cost = turretCosts[type] || 150;
         
         if (this.game.resourceManager.resources >= cost) {
+            // 먼저 돈 차감
             this.game.resourceManager.spendResources(cost);
-            // 플레이어 앞에 포탑 설치
-            const camera = this.game.camera;
-            const direction = new THREE.Vector3();
-            camera.getWorldDirection(direction);
-            direction.y = 0;
-            direction.normalize();
             
-            const turretPosition = camera.position.clone();
-            turretPosition.add(direction.multiplyScalar(5));
-            turretPosition.y = 0;
-            
-            // 포탑 생성
-            const turret = new TurretBase(this.game.scene, turretPosition, type);
-            this.game.turrets.push(turret);
-            
-            const typeNames = {
-                'basic': '기본 도토리 포탑',
-                'rapid': '빠른 도토리 포탑',
-                'heavy': '강력한 도토리 포탑',
-                'sniper': '저격 도토리 포탑',
-                'splash': '범위 도토리 포탑'
-            };
-            
-            this.game.uiManager.showStageTitle(typeNames[type] + ' 설치 완료!');
-            this.renderItems(); // 상점 아이템 업데이트
+            try {
+                // 필수 객체 확인
+                if (!this.game.scene) {
+                    throw new Error('씬이 초기화되지 않았습니다');
+                }
+                if (!this.game.turrets) {
+                    this.game.turrets = [];
+                }
+                if (!this.game.camera) {
+                    throw new Error('카메라가 초기화되지 않았습니다');
+                }
+                
+                // 플레이어 앞에 포탑 설치
+                const camera = this.game.camera;
+                const direction = new THREE.Vector3();
+                camera.getWorldDirection(direction);
+                direction.y = 0;
+                direction.normalize();
+                
+                const turretPosition = camera.position.clone();
+                turretPosition.add(direction.multiplyScalar(5));
+                turretPosition.y = 0; // 지면 높이
+                
+                console.log(`포탑 생성 시도: 타입=${type}, 위치=(${turretPosition.x.toFixed(2)}, ${turretPosition.y.toFixed(2)}, ${turretPosition.z.toFixed(2)})`);
+                
+                // 포탑 생성
+                const turret = new TurretBase(this.game.scene, turretPosition, type);
+                
+                // 포탑이 제대로 생성되었는지 확인
+                if (!turret || !turret.mesh) {
+                    throw new Error('포탑 메시 생성 실패');
+                }
+                
+                this.game.turrets.push(turret);
+                
+                console.log(`포탑 설치 성공: 타입=${type}, 포탑 개수=${this.game.turrets.length}`);
+                
+                const typeNames = {
+                    'basic': '기본 도토리 포탑',
+                    'rapid': '빠른 도토리 포탑',
+                    'heavy': '강력한 도토리 포탑',
+                    'sniper': '저격 도토리 포탑',
+                    'splash': '범위 도토리 포탑'
+                };
+                
+                this.game.uiManager.showStageTitle(typeNames[type] + ' 설치 완료!');
+                this.renderItems(); // 상점 아이템 업데이트
+            } catch (error) {
+                // 에러 발생 시 돈 환불
+                console.error('포탑 생성 실패:', error);
+                this.game.resourceManager.addResources(cost);
+                this.game.uiManager.showStageTitle('포탑 설치 실패: ' + error.message);
+                this.renderItems(); // 상점 아이템 업데이트
+            }
         } else {
             this.game.uiManager.showStageTitle('리소스가 부족합니다!');
         }
@@ -2913,10 +3056,22 @@ class UIManager {
         const percent = (current / max) * 100;
         this.elements.bossHealthFill.style.width = percent + '%';
         this.elements.bossHealthText.textContent = Math.round(percent) + '%';
+        
+        // 타워 체력바 위치 조정 (보스 체력바 아래로)
+        const towerHealthBar = document.getElementById('towerHealthBar');
+        if (towerHealthBar) {
+            towerHealthBar.style.top = '80px';
+        }
     }
     
     hideBossHealth() {
         this.elements.bossHealthBar.classList.add('hidden');
+        
+        // 타워 체력바 위치 조정 (보스가 없으면 위로)
+        const towerHealthBar = document.getElementById('towerHealthBar');
+        if (towerHealthBar) {
+            towerHealthBar.style.top = '20px';
+        }
     }
     
     updateTowerHealth(current, max) {
@@ -2924,9 +3079,18 @@ class UIManager {
         if (!towerHealthBar) {
             towerHealthBar = document.createElement('div');
             towerHealthBar.id = 'towerHealthBar';
-            towerHealthBar.style.cssText = 'position: fixed; top: 100px; left: 50%; transform: translateX(-50%); width: 300px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; z-index: 1000;';
-            towerHealthBar.innerHTML = '<div style="color: white; margin-bottom: 5px;">도토리 타워</div><div style="background: #333; height: 20px; border-radius: 3px; overflow: hidden;"><div id="towerHealthBarFill" style="background: #4CAF50; height: 100%; width: 100%; transition: width 0.3s;"></div></div><div id="towerHealthText" style="color: white; margin-top: 5px; text-align: center;"></div>';
+            // 보스 체력바 아래에 배치 (보스가 없을 때는 top: 20px, 있을 때는 top: 80px)
+            towerHealthBar.style.cssText = 'position: fixed; top: 80px; left: 50%; transform: translateX(-50%); width: 300px; max-width: 90%; background: rgba(0,0,0,0.8); padding: 8px; border-radius: 8px; z-index: 998; border: 2px solid #4CAF50;';
+            towerHealthBar.innerHTML = '<div style="color: #4CAF50; margin-bottom: 5px; font-size: 14px; font-weight: bold;">도토리 타워</div><div style="background: #333; height: 20px; border-radius: 5px; overflow: hidden;"><div id="towerHealthBarFill" style="background: #4CAF50; height: 100%; width: 100%; transition: width 0.3s;"></div></div><div id="towerHealthText" style="color: white; margin-top: 5px; text-align: center; font-size: 12px;"></div>';
             document.body.appendChild(towerHealthBar);
+        }
+        
+        // 보스 체력바가 표시되면 타워 체력바 위치 조정
+        const bossHealthBar = document.getElementById('bossHealthBar');
+        if (bossHealthBar && !bossHealthBar.classList.contains('hidden')) {
+            towerHealthBar.style.top = '80px';
+        } else {
+            towerHealthBar.style.top = '20px';
         }
         const percent = (current / max) * 100;
         const fill = document.getElementById('towerHealthBarFill');
@@ -3789,17 +3953,33 @@ class Tower {
 // TurretBase - 포탑 기본 클래스
 class TurretBase {
     constructor(scene, position, type = 'basic') {
-        this.scene = scene;
-        this.position = position.clone();
-        this.type = type;
-        this.fireTimer = 0;
-        this.target = null;
-        
-        // 타입별 스탯 설정
-        this.setStats(type);
-        
-        this.mesh = null;
-        this.createMesh();
+        try {
+            if (!scene) {
+                throw new Error('씬이 제공되지 않았습니다');
+            }
+            if (!position) {
+                throw new Error('위치가 제공되지 않았습니다');
+            }
+            
+            this.scene = scene;
+            this.position = position.clone();
+            this.type = type;
+            this.fireTimer = 0;
+            this.target = null;
+            
+            // 타입별 스탯 설정
+            this.setStats(type);
+            
+            this.mesh = null;
+            this.createMesh();
+            
+            if (!this.mesh) {
+                throw new Error('포탑 메시 생성 실패');
+            }
+        } catch (error) {
+            console.error('TurretBase 생성자 에러:', error);
+            throw error; // 에러를 다시 던져서 buyTurret에서 처리하도록
+        }
     }
     
     setStats(type) {
@@ -3846,91 +4026,116 @@ class TurretBase {
     createMesh() {
         const turretGroup = new THREE.Group();
         
-        // 도토리 기둥 (갈색 원통)
-        const baseGeometry = new THREE.CylinderGeometry(0.5, 0.6, 1.5, 8);
+        // 도토리 기둥 (갈색 원통) - 크기를 더 크게
+        const baseGeometry = new THREE.CylinderGeometry(0.6, 0.7, 1.8, 8);
         const baseMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x8b4513, // 갈색
             roughness: 0.9
         });
         const base = new THREE.Mesh(baseGeometry, baseMaterial);
-        base.position.y = 0.75;
+        base.position.y = 0.9; // 높이 조정
         base.castShadow = true;
         base.receiveShadow = true;
         turretGroup.add(base);
         
-        // 도토리 몸체 (갈색 구)
-        const bodyGeometry = new THREE.SphereGeometry(0.6, 8, 8);
+        // 도토리 몸체 (갈색 구) - 크기를 더 크게
+        const bodyGeometry = new THREE.SphereGeometry(0.7, 8, 8);
         const bodyMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x8b4513,
             roughness: 0.9
         });
         const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-        body.position.y = 1.8;
+        body.position.y = 2.1; // 높이 조정
         body.scale.set(1, 1.2, 1);
         body.castShadow = true;
         turretGroup.add(body);
         
         // 도토리 뚜껑 (어두운 갈색 원뿔)
-        const capGeometry = new THREE.ConeGeometry(0.5, 0.4, 8);
+        const capGeometry = new THREE.ConeGeometry(0.6, 0.5, 8);
         const capMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x654321,
             roughness: 0.8
         });
         const cap = new THREE.Mesh(capGeometry, capMaterial);
-        cap.position.y = 2.4;
+        cap.position.y = 2.7; // 높이 조정
         cap.castShadow = true;
         turretGroup.add(cap);
         
-        // 포구 (도토리에서 나오는 총알)
-        const barrelGeometry = new THREE.CylinderGeometry(0.1, 0.15, 0.8, 6);
+        // 포구 (도토리에서 나오는 총알) - 더 크게
+        const barrelGeometry = new THREE.CylinderGeometry(0.12, 0.18, 1.0, 6);
         const barrelMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x654321,
             roughness: 0.7
         });
         const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
-        barrel.position.set(0, 1.8, 0.6);
+        barrel.position.set(0, 2.1, 0.7); // 높이 조정
         barrel.rotation.x = Math.PI / 2;
         turretGroup.add(barrel);
         
-        // 타입별 특수 효과
+        // 타입별 특수 효과 및 색상 구분
         if (this.type === 'rapid') {
-            // 빠른 포탑 - 작은 도토리 추가
+            // 빠른 포탑 - 작은 도토리 추가, 밝은 갈색
+            bodyMaterial.color.setHex(0xa0522d); // 밝은 갈색
             const smallAcorn = new THREE.Mesh(
-                new THREE.SphereGeometry(0.2, 6, 6),
+                new THREE.SphereGeometry(0.25, 6, 6),
                 new THREE.MeshStandardMaterial({ color: 0x9b5a2a })
             );
-            smallAcorn.position.set(0.3, 1.5, 0);
+            smallAcorn.position.set(0.3, 1.8, 0);
             turretGroup.add(smallAcorn);
         } else if (this.type === 'heavy') {
-            // 강력한 포탑 - 큰 도토리
+            // 강력한 포탑 - 큰 도토리, 어두운 갈색
+            bodyMaterial.color.setHex(0x654321); // 어두운 갈색
+            baseMaterial.color.setHex(0x654321);
             body.scale.set(1.3, 1.4, 1.3);
             base.scale.set(1.2, 1, 1.2);
         } else if (this.type === 'sniper') {
-            // 저격 포탑 - 긴 포구
+            // 저격 포탑 - 긴 포구, 검은색 강조
+            bodyMaterial.color.setHex(0x4a4a4a); // 회색
+            barrelMaterial.color.setHex(0x1a1a1a); // 검은색
             barrel.scale.set(1, 1.5, 1);
             const scope = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.08, 0.08, 0.3, 8),
                 new THREE.MeshStandardMaterial({ color: 0x2c2c2c })
             );
-            scope.position.set(0, 2.2, 0.3);
+            scope.position.set(0, 2.5, 0.3);
             scope.rotation.x = Math.PI / 2;
             turretGroup.add(scope);
         } else if (this.type === 'splash') {
-            // 범위 포탑 - 여러 포구
+            // 범위 포탑 - 여러 포구, 주황색 강조
+            bodyMaterial.color.setHex(0xcd853f); // 주황 갈색
+            barrelMaterial.color.setHex(0xff8c00); // 주황색
             for (let i = 0; i < 3; i++) {
                 const multiBarrel = barrel.clone();
                 multiBarrel.position.set(
                     (i - 1) * 0.2,
-                    1.8,
-                    0.6
+                    2.1,
+                    0.7
                 );
                 turretGroup.add(multiBarrel);
             }
+        } else {
+            // basic - 기본 갈색 (이미 설정됨)
         }
         
-        turretGroup.position.copy(this.position);
+        // 포탑 그룹 위치 설정 (base의 바닥이 지면에 오도록)
+        // base의 중심이 y=0.9에 있고 높이가 1.8이므로, base의 바닥은 y=0
+        // 따라서 포탑 그룹의 y를 position.y - 0.9로 설정하면 base의 바닥이 지면에 옴
+        turretGroup.position.set(
+            this.position.x,
+            this.position.y - 0.9, // base의 바닥이 지면에 오도록
+            this.position.z
+        );
         this.mesh = turretGroup;
-        this.scene.add(this.mesh);
+        
+        // 씬에 추가
+        try {
+            this.scene.add(this.mesh);
+            console.log(`포탑 생성 성공: 타입=${this.type}, 위치=(${this.position.x.toFixed(2)}, ${this.position.y.toFixed(2)}, ${this.position.z.toFixed(2)}), 그룹위치=(${turretGroup.position.x.toFixed(2)}, ${turretGroup.position.y.toFixed(2)}, ${turretGroup.position.z.toFixed(2)})`);
+            console.log(`포탑 메시 자식 개수: ${this.mesh.children.length}, 씬에 추가됨: ${this.scene.children.includes(this.mesh)}`);
+        } catch (error) {
+            console.error('씬에 포탑 추가 실패:', error);
+            throw error;
+        }
     }
     
     update(deltaTime, enemies) {
@@ -3942,7 +4147,10 @@ class TurretBase {
         
         enemies.forEach(enemy => {
             if (enemy.isDead) return;
-            const distance = this.position.distanceTo(enemy.position);
+            // 실제 메시 위치를 기준으로 거리 계산
+            const meshPosition = this.mesh.position.clone();
+            meshPosition.y = this.position.y; // y는 원래 위치 사용
+            const distance = meshPosition.distanceTo(enemy.position);
             if (distance < closestDistance) {
                 closestDistance = distance;
                 closestEnemy = enemy;
@@ -3953,8 +4161,11 @@ class TurretBase {
         
         // 적을 향해 포탑 회전
         if (this.target) {
+            // 실제 메시 위치 사용
+            const meshPosition = this.mesh.position.clone();
+            meshPosition.y = this.position.y; // y는 원래 위치 사용
             const direction = new THREE.Vector3()
-                .subVectors(this.target.position, this.position)
+                .subVectors(this.target.position, meshPosition)
                 .normalize();
             const angle = Math.atan2(direction.x, direction.z);
             this.mesh.rotation.y = angle;
@@ -4432,6 +4643,13 @@ class Game {
                         this.shopSystem.hide();
                         this.isPaused = false;
                     }
+                }
+            }
+            
+            // 상점이 열려있을 때 WASD/화살표 키 처리
+            if (this.shopSystem && !this.shopSystem.shopMenu.classList.contains('hidden')) {
+                if (this.shopSystem.handleKeyInput(e.code)) {
+                    e.preventDefault();
                 }
             }
         });
